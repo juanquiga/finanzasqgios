@@ -4,38 +4,52 @@ import FirebaseDatabase
 
 struct GraficasView: View {
 
+    @ObservedObject var theme = ThemeManager.shared
+    @ObservedObject var loc   = LocalizationManager.shared
     @State private var movimientos: [Movimiento] = []
-    @State private var periodo  = "Mensual"
-    @State private var filtro   = "Todo"
-    @State private var irHistorial = false
+    @State private var periodo      = "Mensual"
+    @State private var filtro       = "Todo"
+    @State private var monedaFiltro = "AMBAS"    // AMBAS | COP | USD
+    @State private var irHistorial  = false
 
-    var movimientosPorPeriodo: [Movimiento] {
+    // Paso 1: periodo
+    var porPeriodo: [Movimiento] {
         let ahora = Calendar.current
         return movimientos.filter { m in
             let fecha = Date(timeIntervalSince1970: m.timestamp / 1000)
-            if periodo == "Mensual" {
-                return ahora.isDate(fecha, equalTo: Date(), toGranularity: .month)
-            } else {
-                return ahora.isDate(fecha, equalTo: Date(), toGranularity: .year)
-            }
+            return periodo == "Mensual"
+                ? ahora.isDate(fecha, equalTo: Date(), toGranularity: .month)
+                : ahora.isDate(fecha, equalTo: Date(), toGranularity: .year)
         }
     }
 
+    // Paso 2: moneda
+    var porMoneda: [Movimiento] {
+        switch monedaFiltro {
+        case "COP": return porPeriodo.filter { $0.moneda == "COP" }
+        case "USD": return porPeriodo.filter { $0.moneda == "USD" }
+        default:    return porPeriodo
+        }
+    }
+
+    // Paso 3: tipo
     var movimientosFiltrados: [Movimiento] {
         switch filtro {
-        case "Ingresos": return movimientosPorPeriodo.filter { $0.tipoTransaccion == "Ingreso" }
-        case "Egresos":  return movimientosPorPeriodo.filter { $0.tipoTransaccion == "Egreso" }
-        default:         return movimientosPorPeriodo
+        case "Ingresos":       return porMoneda.filter { $0.tipoTransaccion == "Ingreso" }
+        case "Egresos":        return porMoneda.filter { $0.tipoTransaccion == "Egreso" }
+        case "Transferencias": return porMoneda.filter { $0.tipoTransaccion == "Transferencia" }
+        default:               return porMoneda
         }
     }
 
     var totalIngresos: Double {
-        movimientosFiltrados.filter { $0.tipoTransaccion == "Ingreso" }
-            .reduce(0) { $0 + $1.valor }
+        porMoneda.filter { $0.tipoTransaccion == "Ingreso" }.reduce(0) { $0 + $1.valor }
     }
     var totalEgresos: Double {
-        movimientosFiltrados.filter { $0.tipoTransaccion == "Egreso" }
-            .reduce(0) { $0 + $1.valor }
+        porMoneda.filter { $0.tipoTransaccion == "Egreso" }.reduce(0) { $0 + $1.valor }
+    }
+    var totalTransferencias: Double {
+        porMoneda.filter { $0.tipoTransaccion == "Transferencia" }.reduce(0) { $0 + $1.valor }
     }
 
     var porCategoria: [(String, Double)] {
@@ -45,10 +59,22 @@ struct GraficasView: View {
             .prefix(6).map { ($0.key, $0.value) }
     }
 
+    // Moneda para formatear totales
+    var monedaMostrar: String { monedaFiltro == "USD" ? "USD" : "COP" }
+
     let colores: [Color] = [
         Color(hex: "#FF5252"), Color(hex: "#FF9800"), Color(hex: "#2196F3"),
         Color(hex: "#9C27B0"), Color(hex: "#00BCD4"), Color(hex: "#4CAF50")
     ]
+
+    var filtrosDisponibles: [(String, String)] {
+        [
+            ("Todo",           t("graficas.todo")),
+            ("Ingresos",       t("graficas.ingresos")),
+            ("Egresos",        t("graficas.egresos")),
+            ("Transferencias", t("graficas.transferencias"))
+        ]
+    }
 
     var body: some View {
         NavigationStack {
@@ -56,165 +82,256 @@ struct GraficasView: View {
                 VStack(spacing: 14) {
 
                     // Header
-                    Text("📊 Gráficas y Historial")
-                        .font(.title2.bold()).foregroundColor(.verdeApp)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.card).cornerRadius(16)
+                    Text(t("graficas.titulo"))
+                        .font(Font.title2.bold()).foregroundColor(.acentoApp)
+                        .frame(maxWidth: .infinity).padding()
+                        .background(Color.cardApp).cornerRadius(16)
                         .overlay(RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color.borde, lineWidth: 1))
+                            .stroke(Color.bordeApp, lineWidth: 1))
 
                     // Período
                     HStack(spacing: 8) {
-                        ForEach(["Mensual", "Anual"], id: \.self) { p in
-                            Button(p) { periodo = p }
-                                .font(.subheadline.bold())
-                                .frame(maxWidth: .infinity).padding(.vertical, 10)
-                                .background(periodo == p ? Color.verdeApp : Color.card)
-                                .foregroundColor(periodo == p
-                                    ? Color(hex: "#050510") : Color.verdeApp)
-                                .cornerRadius(12)
+                        ForEach(["Mensual","Anual"], id: \.self) { p in
+                            Button(p == "Mensual"
+                                   ? t("graficas.mensual") : t("graficas.anual")) {
+                                periodo = p
+                            }
+                            .font(Font.subheadline.bold())
+                            .frame(maxWidth: .infinity).padding(.vertical, 10)
+                            .background(periodo == p ? Color.acentoApp : Color.cardApp)
+                            .foregroundColor(periodo == p
+                                ? Color(hex: "#050510") : Color.acentoApp)
+                            .cornerRadius(12)
                         }
                     }
 
-                    // Filtro
-                    HStack(spacing: 8) {
-                        ForEach(["Todo", "Ingresos", "Egresos"], id: \.self) { f in
-                            Button(f) { filtro = f }
-                                .font(.caption.bold())
+                    // Filtro tipo
+                    LazyVGrid(columns: [
+                        GridItem(.flexible()), GridItem(.flexible()),
+                        GridItem(.flexible()), GridItem(.flexible())
+                    ], spacing: 6) {
+                        ForEach(filtrosDisponibles, id: \.0) { key, label in
+                            Button(label) { filtro = key }
+                                .font(Font.caption.bold())
                                 .frame(maxWidth: .infinity).padding(.vertical, 8)
-                                .background(filtro == f ? Color.verdeApp : Color.card)
-                                .foregroundColor(filtro == f
-                                    ? Color(hex: "#050510") : Color.verdeApp)
+                                .background(filtro == key ? Color.acentoApp : Color.cardApp)
+                                .foregroundColor(filtro == key
+                                    ? Color(hex: "#050510") : Color.acentoApp)
                                 .cornerRadius(10)
                         }
                     }
 
-                    // Gráfica de barras
+                    // Filtro moneda
+                    HStack(spacing: 8) {
+                        ForEach([("AMBAS","🌐 Ambas"),("COP","🇨🇴 COP"),("USD","🇺🇸 USD")],
+                                id: \.0) { key, label in
+                            Button(label) { monedaFiltro = key }
+                                .font(Font.caption.bold())
+                                .frame(maxWidth: .infinity).padding(.vertical, 8)
+                                .background(monedaFiltro == key ? Color.acentoApp : Color.cardApp)
+                                .foregroundColor(monedaFiltro == key
+                                    ? Color(hex: "#050510") : Color.acentoApp)
+                                .cornerRadius(10)
+                        }
+                    }
+
+                    // Gráfica barras
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(filtro == "Ingresos" ? "Categorías de Ingreso"
-                            : filtro == "Egresos" ? "Categorías de Egreso"
-                            : "Por Categoría")
-                            .font(.subheadline.bold()).foregroundColor(.white)
+                        Text(tituloBarras)
+                            .font(Font.subheadline.bold()).foregroundColor(.textoPrincipal)
 
                         if porCategoria.isEmpty {
-                            Text("Sin datos para este período")
-                                .foregroundColor(.grisTexto).font(.caption)
-                                .frame(maxWidth: .infinity)
-                                .padding(20)
+                            Text(t("graficas.sin_datos"))
+                                .foregroundColor(.textoSecundario).font(Font.caption)
+                                .frame(maxWidth: .infinity).padding(20)
                         } else {
                             graficaBarras
                         }
                     }
                     .padding()
-                    .background(Color.card).cornerRadius(16)
+                    .background(Color.cardApp).cornerRadius(16)
                     .overlay(RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.borde, lineWidth: 1))
+                        .stroke(Color.bordeApp, lineWidth: 1))
 
                     // Gráfica donut
                     VStack(alignment: .leading, spacing: 12) {
-                        Text(filtro == "Todo" ? "Ingresos vs Egresos"
-                            : filtro == "Ingresos" ? "Distribución de Ingresos"
-                            : "Distribución de Egresos")
-                            .font(.subheadline.bold()).foregroundColor(.white)
+                        Text(tituloDonut)
+                            .font(Font.subheadline.bold()).foregroundColor(.textoPrincipal)
                         graficaDonut
                     }
                     .padding()
-                    .background(Color.card).cornerRadius(16)
+                    .background(Color.cardApp).cornerRadius(16)
                     .overlay(RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.borde, lineWidth: 1))
+                        .stroke(Color.bordeApp, lineWidth: 1))
 
                     // Botón historial
-                    Button {
-                        irHistorial = true
-                    } label: {
+                    Button { irHistorial = true } label: {
                         HStack {
                             Image(systemName: "clock.arrow.circlepath")
-                            Text("VER HISTORIAL COMPLETO").fontWeight(.bold)
+                            Text(t("graficas.historial")).fontWeight(.bold)
                             Spacer()
                             Image(systemName: "chevron.right")
                         }
                         .padding()
-                        .background(Color.card).cornerRadius(14)
-                        .foregroundColor(.verdeApp)
+                        .background(Color.cardApp).cornerRadius(14)
+                        .foregroundColor(.acentoApp)
                         .overlay(RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color.verdeApp.opacity(0.5), lineWidth: 1))
+                            .stroke(Color.acentoApp.opacity(0.5), lineWidth: 1))
+                        .contentShape(Rectangle())
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 .padding()
             }
-            .background(Color.fondo.ignoresSafeArea())
-            .navigationDestination(isPresented: $irHistorial) {
-                HistorialView()
-            }
+            .background(Color.fondoApp.ignoresSafeArea())
+            .navigationDestination(isPresented: $irHistorial) { HistorialView() }
         }
+        .preferredColorScheme(theme.temaOscuro ? .dark : .light)
+        .id(loc.idioma)
         .onAppear { cargar() }
     }
 
-    // Barras
+    // MARK: - Títulos
+    var tituloBarras: String {
+        switch filtro {
+        case "Ingresos":       return t("graficas.ingresos")
+        case "Egresos":        return t("graficas.egresos")
+        case "Transferencias": return t("graficas.transferencias")
+        default:               return t("graficas.por_categoria")
+        }
+    }
+    var tituloDonut: String {
+        switch filtro {
+        case "Ingresos":       return t("graficas.ingreso_porc")
+        case "Egresos":        return t("graficas.egreso_porc")
+        case "Transferencias": return t("graficas.transferencias")
+        default:               return t("graficas.vs")
+        }
+    }
+
+    // MARK: - Gráfica barras
     var graficaBarras: some View {
         let maxVal = porCategoria.map { $0.1 }.max() ?? 1
-        return VStack(spacing: 8) {
+        return VStack(spacing: 10) {
             ForEach(Array(porCategoria.enumerated()), id: \.offset) { i, item in
                 HStack(spacing: 10) {
                     Text(item.0)
-                        .font(.caption).foregroundColor(.white)
-                        .frame(width: 80, alignment: .leading)
-                        .lineLimit(1)
+                        .font(Font.caption).foregroundColor(.textoPrincipal)
+                        .frame(width: 80, alignment: .leading).lineLimit(1)
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             RoundedRectangle(cornerRadius: 6)
-                                .fill(Color.borde).frame(height: 20)
+                                .fill(Color.bordeApp).frame(height: 18)
                             RoundedRectangle(cornerRadius: 6)
                                 .fill(colores[i % colores.count])
-                                .frame(
-                                    width: max(8, geo.size.width * CGFloat(item.1 / maxVal)),
-                                    height: 20)
+                                .frame(width: max(8, geo.size.width
+                                    * CGFloat(item.1 / maxVal)), height: 18)
                         }
                     }
-                    .frame(height: 20)
-                    Text(formatCOP(item.1))
-                        .font(.caption2).foregroundColor(.white)
-                        .frame(width: 70, alignment: .trailing)
+                    .frame(height: 18)
+                    Text(formatValor(item.1, moneda: monedaMostrar))
+                        .font(Font.caption2).foregroundColor(.textoPrincipal)
+                        .frame(width: 80, alignment: .trailing)
                 }
             }
         }
     }
 
-    // Donut
+    // MARK: - Gráfica donut
     var graficaDonut: some View {
-        let total = totalIngresos + totalEgresos
-        let angIng = total > 0 ? (totalIngresos / total) * 360 : 180
-        let angEgr = 360 - angIng
+        let total = totalIngresos + totalEgresos + totalTransferencias
 
-        return HStack(spacing: 24) {
+        let (porcIng, porcEgr, porcTra): (Double, Double, Double) = {
+            switch filtro {
+            case "Ingresos":
+                return (total > 0 ? totalIngresos/total : 0, 0, 0)
+            case "Egresos":
+                return (0, total > 0 ? totalEgresos/total : 0, 0)
+            case "Transferencias":
+                return (0, 0, total > 0 ? totalTransferencias/total : 0)
+            default:
+                guard total > 0 else { return (1.0/3, 1.0/3, 1.0/3) }
+                return (totalIngresos/total, totalEgresos/total,
+                        totalTransferencias/total)
+            }
+        }()
+
+        return HStack(spacing: 20) {
             ZStack {
-                Circle()
-                    .trim(from: 0, to: 1)
-                    .stroke(Color.borde, lineWidth: 30)
+                Circle().trim(from: 0, to: 1)
+                    .stroke(Color.bordeApp, lineWidth: 24)
                     .rotationEffect(.degrees(-90))
-                Circle()
-                    .trim(from: 0, to: CGFloat(angIng / 360))
-                    .stroke(Color.verdeApp, style: StrokeStyle(lineWidth: 30, lineCap: .butt))
-                    .rotationEffect(.degrees(-90))
-                Circle()
-                    .trim(from: CGFloat(angIng / 360), to: 1)
-                    .stroke(Color.rojoApp, style: StrokeStyle(lineWidth: 30, lineCap: .butt))
-                    .rotationEffect(.degrees(-90))
+                if porcIng > 0 {
+                    Circle().trim(from: 0, to: CGFloat(porcIng))
+                        .stroke(Color.verdeFinanzas,
+                                style: StrokeStyle(lineWidth: 24, lineCap: .butt))
+                        .rotationEffect(.degrees(-90))
+                }
+                if porcEgr > 0 {
+                    Circle()
+                        .trim(from: CGFloat(porcIng),
+                              to: CGFloat(porcIng + porcEgr))
+                        .stroke(Color.rojoFinanzas,
+                                style: StrokeStyle(lineWidth: 24, lineCap: .butt))
+                        .rotationEffect(.degrees(-90))
+                }
+                if porcTra > 0 {
+                    Circle()
+                        .trim(from: CGFloat(porcIng + porcEgr),
+                              to: CGFloat(porcIng + porcEgr + porcTra))
+                        .stroke(Color(hex: "#2196F3"),
+                                style: StrokeStyle(lineWidth: 24, lineCap: .butt))
+                        .rotationEffect(.degrees(-90))
+                }
                 VStack(spacing: 2) {
-                    Text(total > 0 ? "\(Int(totalIngresos / total * 100))%" : "0%")
-                        .font(.headline.bold()).foregroundColor(.white)
-                    Text("Ing.").font(.caption2).foregroundColor(.grisTexto)
+                    switch filtro {
+                    case "Ingresos":
+                        Text("\(Int(porcIng * 100))%")
+                            .font(Font.headline.bold()).foregroundColor(.textoPrincipal)
+                        Text(t("graficas.ingresos"))
+                            .font(Font.caption2).foregroundColor(.textoSecundario)
+                    case "Egresos":
+                        Text("\(Int(porcEgr * 100))%")
+                            .font(Font.headline.bold()).foregroundColor(.textoPrincipal)
+                        Text(t("graficas.egresos"))
+                            .font(Font.caption2).foregroundColor(.textoSecundario)
+                    case "Transferencias":
+                        Text("\(Int(porcTra * 100))%")
+                            .font(Font.headline.bold()).foregroundColor(.textoPrincipal)
+                        Text(t("graficas.transferencias"))
+                            .font(Font.caption2).foregroundColor(.textoSecundario)
+                    default:
+                        VStack(spacing: 1) {
+                            Text("\(Int(porcIng * 100))%")
+                                .font(Font.caption.bold())
+                                .foregroundColor(Color.verdeFinanzas)
+                            Text("\(Int(porcEgr * 100))%")
+                                .font(Font.caption.bold())
+                                .foregroundColor(Color.rojoFinanzas)
+                        }
+                    }
                 }
             }
-            .frame(width: 120, height: 120)
+            .frame(width: 100, height: 100)
 
-            VStack(alignment: .leading, spacing: 12) {
-                leyenda("Ingresos", formatCOP(totalIngresos), .verdeApp)
-                leyenda("Egresos",  formatCOP(totalEgresos),  .rojoApp)
-                Divider().background(Color.borde)
-                leyenda("Balance", formatCOP(totalIngresos - totalEgresos),
-                        totalIngresos >= totalEgresos ? .verdeApp : .rojoApp)
+            // Leyenda
+            VStack(alignment: .leading, spacing: 10) {
+                leyenda(t("graficas.ingresos"),
+                        formatValor(totalIngresos, moneda: monedaMostrar),
+                        Color.verdeFinanzas)
+                leyenda(t("graficas.egresos"),
+                        formatValor(totalEgresos, moneda: monedaMostrar),
+                        Color.rojoFinanzas)
+                if totalTransferencias > 0 {
+                    leyenda(t("graficas.transferencias"),
+                            formatValor(totalTransferencias, moneda: monedaMostrar),
+                            Color(hex: "#2196F3"))
+                }
+                Divider().background(Color.bordeApp)
+                let balance = totalIngresos - totalEgresos
+                leyenda("Balance",
+                        formatValor(balance, moneda: monedaMostrar),
+                        balance >= 0 ? Color.verdeFinanzas : Color.rojoFinanzas)
             }
             Spacer()
         }
@@ -223,12 +340,13 @@ struct GraficasView: View {
     func leyenda(_ label: String, _ valor: String, _ color: Color) -> some View {
         HStack(spacing: 8) {
             Circle().fill(color).frame(width: 10, height: 10)
-            Text(label).font(.caption).foregroundColor(.grisTexto)
+            Text(label).font(Font.caption).foregroundColor(.textoSecundario)
             Spacer()
-            Text(valor).font(.caption.bold()).foregroundColor(color)
+            Text(valor).font(Font.caption.bold()).foregroundColor(color)
         }
     }
 
+    // MARK: - Firebase
     func cargar() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
         Database.database().reference().child("movimientos").child(uid)
@@ -237,14 +355,16 @@ struct GraficasView: View {
                 for case let child as DataSnapshot in snap.children {
                     let d = child.value as? [String: Any] ?? [:]
                     temp.append(Movimiento(
-                        id: d["id"] as? String ?? "",
+                        id:              d["id"]              as? String ?? "",
                         tipoTransaccion: d["tipoTransaccion"] as? String ?? "",
-                        detalle: d["detalle"] as? String ?? "",
-                        categoria: d["categoria"] as? String ?? "",
-                        subcategoria: d["subcategoria"] as? String ?? "",
-                        valor: d["valor"] as? Double ?? 0,
-                        timestamp: d["timestamp"] as? Double ?? 0,
-                        cuenta: d["cuenta"] as? String ?? ""
+                        detalle:         d["detalle"]         as? String ?? "",
+                        categoria:       d["categoria"]       as? String ?? "",
+                        subcategoria:    d["subcategoria"]    as? String ?? "",
+                        subsubcategoria: d["subsubcategoria"] as? String ?? "",
+                        valor:           d["valor"]           as? Double ?? 0,
+                        timestamp:       d["timestamp"]       as? Double ?? 0,
+                        cuenta:          d["cuenta"]          as? String ?? "",
+                        moneda:          d["moneda"]          as? String ?? "COP"
                     ))
                 }
                 movimientos = temp

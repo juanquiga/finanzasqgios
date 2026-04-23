@@ -4,14 +4,18 @@ import FirebaseDatabase
 
 struct SignUpView: View {
 
+    @ObservedObject var theme = ThemeManager.shared
     @Environment(\.dismiss) var dismiss
 
-    @State private var name    = ""
-    @State private var email   = ""
-    @State private var pass    = ""
-    @State private var mensaje = ""
-    @State private var loading = false
+    @State private var name         = ""
+    @State private var email        = ""
+    @State private var pass         = ""
+    @State private var mostrarPass  = false      // ← nuevo
+    @State private var mensaje      = ""
+    @State private var loading      = false
     @State private var cuentaCreada = false
+
+    @FocusState private var campoActivo: Bool
 
     let db = Database.database().reference()
 
@@ -20,142 +24,187 @@ struct SignUpView: View {
             VStack(spacing: 24) {
 
                 VStack(spacing: 8) {
-                    Text("💰").font(.system(size: 60))
+                    Text("💰").font(Font.system(size: 60))
                     Text("FinanzasQG")
-                        .font(.title.bold()).foregroundColor(.verdeApp)
-                    Text("Crea tu cuenta")
-                        .foregroundColor(.grisTexto).font(.subheadline)
+                        .font(Font.title.bold()).foregroundColor(.acentoApp)
+                    Text(t("signup.titulo"))
+                        .foregroundColor(.textoSecundario).font(Font.subheadline)
                 }
                 .padding(.top, 40)
 
                 VStack(spacing: 14) {
 
-                    campoTexto("👤  Nombre de usuario", texto: $name,
-                               secure: false, keyboard: .default)
-                    campoTexto("✉️  Correo electrónico", texto: $email,
-                               secure: false, keyboard: .emailAddress)
-                    campoTexto("🔒  Contraseña (mín. 6)", texto: $pass,
-                               secure: true, keyboard: .default)
+                    campoTexto("👤  \(t("signup.nombre"))",
+                               texto: $name, secure: false, keyboard: .default)
+                    campoTexto("✉️  \(t("signup.correo"))",
+                               texto: $email, secure: false, keyboard: .emailAddress)
 
-                    // Mensaje de éxito o error
+                    // Contraseña con ojo
+                    campoContrasena
+
                     if !mensaje.isEmpty {
                         HStack {
                             Image(systemName: cuentaCreada
-                                  ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
-                            Text(mensaje).font(.subheadline)
+                                  ? "checkmark.circle.fill"
+                                  : "exclamationmark.circle.fill")
+                            Text(mensaje).font(Font.subheadline)
                         }
-                        .foregroundColor(cuentaCreada ? .verdeApp : .rojoApp)
+                        .foregroundColor(cuentaCreada
+                            ? Color.verdeFinanzas : Color.rojoFinanzas)
                         .padding()
                         .background(cuentaCreada
                             ? Color(hex: "#1B4332") : Color(hex: "#4A1010"))
-                        .cornerRadius(12)
-                        .transition(.opacity)
+                        .cornerRadius(12).transition(.opacity)
                     }
 
-                    Button(action: registrar) {
+                    Button {
+                        campoActivo = false
+                        registrar()
+                    } label: {
                         HStack {
                             if loading { ProgressView().tint(.white) }
                             else {
                                 Image(systemName: "person.badge.plus")
-                                Text("CREAR CUENTA").fontWeight(.bold)
+                                Text(t("signup.boton")).fontWeight(.bold)
                             }
                         }
                         .frame(maxWidth: .infinity).padding()
-                        .background(
-                            Group {
-                                if cuentaCreada {
-                                    AnyView(Color.gray)
-                                } else {
-                                    AnyView(LinearGradient(
-                                        colors: [Color(hex: "#2E7D32"), Color(hex: "#1B5E20")],
-                                        startPoint: .leading, endPoint: .trailing))
-                                }
-                            }
-                        )
+                        .background(cuentaCreada
+                            ? AnyView(Color.gray) : AnyView(Color.gradienteBoton))
                         .foregroundColor(.white).cornerRadius(14)
+                        .contentShape(Rectangle())
                     }
-                    .disabled(loading || cuentaCreada)
+                    .buttonStyle(PlainButtonStyle())
                     .disabled(loading || cuentaCreada)
 
                     if cuentaCreada {
                         Button {
-                            dismiss()
+                            campoActivo = false; dismiss()
                         } label: {
                             HStack {
                                 Image(systemName: "arrow.left.circle.fill")
-                                Text("IR AL LOGIN").fontWeight(.bold)
+                                Text(t("signup.ir_login")).fontWeight(.bold)
                             }
                             .frame(maxWidth: .infinity).padding()
-                            .background(LinearGradient(
-                                colors: [Color(hex: "#2E7D32"), Color(hex: "#1B5E20")],
-                                startPoint: .leading, endPoint: .trailing))
+                            .background(Color.gradienteBoton)
                             .foregroundColor(.white).cornerRadius(14)
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(PlainButtonStyle())
                     }
 
                     HStack {
-                        Rectangle().frame(height: 1).foregroundColor(.borde)
-                        Text("o").foregroundColor(.grisTexto).font(.caption)
-                        Rectangle().frame(height: 1).foregroundColor(.borde)
+                        Rectangle().frame(height: 1).foregroundColor(Color.bordeApp)
+                        Text("o").foregroundColor(.textoSecundario).font(Font.caption)
+                        Rectangle().frame(height: 1).foregroundColor(Color.bordeApp)
                     }
 
-                    Button { dismiss() } label: {
-                        Text("← Volver al Login")
+                    Button {
+                        campoActivo = false; dismiss()
+                    } label: {
+                        Text(t("signup.volver"))
                             .frame(maxWidth: .infinity).padding()
-                            .background(Color.card).foregroundColor(.verdeApp)
+                            .background(Color.cardApp).foregroundColor(.acentoApp)
                             .cornerRadius(14)
                             .overlay(RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.borde, lineWidth: 1))
+                                .stroke(Color.bordeApp, lineWidth: 1))
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(PlainButtonStyle())
                     .disabled(loading)
                 }
                 .padding(24)
-                .background(Color.card).cornerRadius(24)
+                .background(Color.cardApp).cornerRadius(24)
                 .overlay(RoundedRectangle(cornerRadius: 24)
-                    .stroke(Color.borde, lineWidth: 1))
+                    .stroke(Color.bordeApp, lineWidth: 1))
                 .padding(.horizontal)
 
-                Text("FinanzasQG © 2025")
-                    .foregroundColor(Color.grisTexto.opacity(0.4))
-                    .font(.caption2)
+                Text(t("login.copyright"))
+                    .foregroundColor(Color.textoSecundario.opacity(0.4))
+                    .font(Font.caption2)
             }
         }
-        .background(Color.fondo.ignoresSafeArea())
+        .background(Color.fondoApp.ignoresSafeArea())
         .navigationBarHidden(true)
+        .preferredColorScheme(theme.temaOscuro ? .dark : .light)
+        .onTapGesture { campoActivo = false }
     }
 
+    // MARK: - Campo contraseña con ojo
+    var campoContrasena: some View {
+        HStack(spacing: 12) {
+            Text("🔒").frame(width: 28)
+
+            ZStack {
+                if mostrarPass {
+                    TextField(t("signup.contrasena"), text: $pass)
+                        .foregroundColor(.textoPrincipal)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .focused($campoActivo)
+                } else {
+                    SecureField(t("signup.contrasena"), text: $pass)
+                        .foregroundColor(.textoPrincipal)
+                        .focused($campoActivo)
+                }
+            }
+
+            Button {
+                mostrarPass.toggle()
+            } label: {
+                Image(systemName: mostrarPass ? "eye.slash.fill" : "eye.fill")
+                    .foregroundColor(.textoSecundario)
+                    .frame(width: 24)
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding()
+        .background(Color.inputFondo).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12)
+            .stroke(Color.bordeApp, lineWidth: 1))
+    }
+
+    // MARK: - Campo texto genérico
     func campoTexto(_ placeholder: String, texto: Binding<String>,
                     secure: Bool, keyboard: UIKeyboardType) -> some View {
         Group {
-            if secure { SecureField(placeholder, text: texto) }
-            else {
+            if secure {
+                SecureField(placeholder, text: texto)
+                    .focused($campoActivo)
+            } else {
                 TextField(placeholder, text: texto)
                     .keyboardType(keyboard)
                     .textInputAutocapitalization(
                         keyboard == .emailAddress ? .never : .words)
+                    .focused($campoActivo)
+                    .submitLabel(.next)
             }
         }
-        .foregroundColor(.white).padding()
-        .background(Color(hex: "#0D1A2A")).cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.borde, lineWidth: 1))
+        .foregroundColor(.textoPrincipal).padding()
+        .background(Color.inputFondo).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12)
+            .stroke(Color.bordeApp, lineWidth: 1))
     }
 
+    // MARK: - Firebase
     func registrar() {
         let e = email.trimmingCharacters(in: .whitespacesAndNewlines)
         let p = pass.trimmingCharacters(in: .whitespacesAndNewlines)
         let n = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
         guard !e.isEmpty, !p.isEmpty, !n.isEmpty else {
-            mensaje = "Completa todos los campos"
-            cuentaCreada = false; return
+            mensaje = t("login.error.campos"); cuentaCreada = false; return
         }
         guard p.count >= 6 else {
             mensaje = "La contraseña debe tener mínimo 6 caracteres"
             cuentaCreada = false; return
         }
+
         loading = true
 
         Auth.auth().createUser(withEmail: e, password: p) { result, error in
             DispatchQueue.main.async { loading = false }
+
             if let err = error as NSError? {
                 withAnimation {
                     cuentaCreada = false
@@ -168,20 +217,13 @@ struct SignUpView: View {
                 }
                 return
             }
-            guard let uid = result?.user.uid else { return }
 
-            // Guardar en Firebase
+            guard let uid = result?.user.uid else { return }
             db.child("users").child(uid).setValue([
                 "name": n, "email": e, "uid": uid, "isNewUser": true
             ])
-
-            // Cerrar sesión inmediatamente — el usuario debe iniciar sesión manual
             try? Auth.auth().signOut()
-
-            withAnimation {
-                cuentaCreada = true
-                mensaje = "¡Cuenta creada exitosamente! 🎉\nInicia sesión para continuar."
-            }
+            withAnimation { cuentaCreada = true; mensaje = t("signup.exito") }
         }
     }
 }

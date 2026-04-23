@@ -1,0 +1,122 @@
+// Pantalla Login
+"login.titulo" = "FinanzasQG";
+"login.subtitulo" = "Controla tus finanzas con inteligencia";
+"login.correo" = "Correo o usuario";
+"login.contrasena" = "Contraseña";
+"login.recordar" = "Recordar sesión";
+"login.olvide" = "¿Olvidaste la contraseña?";
+"login.ingresar" = "INGRESAR";
+"login.faceid" = "Entrar con Face ID";
+"login.google" = "Continuar con Google";
+"login.apple" = "Continuar con Apple";
+"login.crear" = "Crear cuenta nueva";
+"login.copyright" = "FinanzasQG © 2025";
+"login.error.campos" = "Completa todos los campos";
+"login.error.credenciales" = "Credenciales incorrectas";
+"login.error.usuario" = "Usuario no encontrado";
+"login.reset.titulo" = "Recuperar contraseña";
+"login.reset.mensaje" = "Ingresa tu correo registrado";
+"login.reset.exito" = "Correo enviado ✅";
+
+// Registro
+"signup.titulo" = "Crear cuenta";
+"signup.nombre" = "Nombre de usuario";
+"signup.correo" = "Correo electrónico";
+"signup.contrasena" = "Contraseña (mín. 6)";
+"signup.boton" = "CREAR CUENTA";
+"signup.exito" = "¡Cuenta creada! 🎉 Inicia sesión para continuar.";
+"signup.volver" = "← Volver al Login";
+"signup.ir_login" = "IR AL LOGIN";
+
+// Nombre usuario (Google/Apple)
+"nombre.titulo" = "¿Cómo te llamamos?";
+"nombre.subtitulo" = "Elige tu nombre de usuario en FinanzasQG";
+"nombre.campo" = "Tu nombre de usuario";
+"nombre.boton" = "CONTINUAR";
+"nombre.error" = "Ingresa un nombre válido";
+
+// Resumen
+"resumen.titulo" = "FinanzasQG 💰";
+"resumen.hola" = "Hola";
+"resumen.diario" = "Diario";
+"resumen.mensual" = "Mensual";
+"resumen.anual" = "Anual";
+"resumen.todo" = "Todo";
+"resumen.ingresos" = "Ingresos";
+"resumen.egresos" = "Egresos";
+"resumen.balance" = "Balance neto";
+"resumen.recientes" = "Movimientos recientes";
+"resumen.vacio" = "Sin movimientos en este período";
+
+// Registrar
+"registrar.titulo" = "Registrar Movimiento";
+"registrar.egreso" = "Egreso";
+"registrar.ingreso" = "Ingreso";
+"registrar.categoria" = "CATEGORÍA";
+"registrar.subcategoria" = "SUBCATEGORÍA";
+"registrar.subsubcategoria" = "SUBSUBCATEGORÍA";
+"registrar.detalle" = "DETALLE (opcional)";
+"registrar.valor" = "VALOR ($)";
+"registrar.cuenta" = "CUENTA";
+"registrar.guardar" = "GUARDAR MOVIMIENTO";
+"registrar.guardado" = "¡Movimiento guardado!";
+"registrar.selecciona_cat" = "Selecciona categoría";
+"registrar.selecciona_sub" = "Selecciona subcategoría";
+"registrar.selecciona_subsub" = "Selecciona opción";
+"registrar.selecciona_cta" = "Selecciona cuenta";
+
+// Gráficas
+"graficas.titulo" = "Gráficas y Historial";
+"graficas.mensual" = "Mensual";
+"graficas.anual" = "Anual";
+"graficas.todo" = "Todo";
+"graficas.ingresos" = "Ingresos";
+"graficas.egresos" = "Egresos";
+"graficas.por_categoria" = "Por Categoría";
+"graficas.vs" = "Ingresos vs Egresos";
+"graficas.historial" = "VER HISTORIAL COMPLETO";
+"graficas.sin_datos" = "Sin datos para este período";
+
+// Historial
+"historial.titulo" = "Historial";
+"historial.buscar" = "Buscar categoría o detalle...";
+"historial.registros" = "reg.";
+
+// Config
+"config.titulo" = "Configuración";
+"config.cambiar_nombre" = "Cambiar usuario";
+"config.cambiar_pass" = "Cambiar contraseña";
+"config.modificar" = "Modificar registros";
+"config.faceid" = "Usar Face ID";
+"config.recordar" = "Recordar sesión";
+"config.tema" = "Modo oscuro";
+"config.idioma" = "Idioma";
+"config.contacto" = "Contáctanos";
+"config.terminos" = "Términos y condiciones";
+"config.cerrar" = "CERRAR SESIÓN";
+"config.cerrar_confirm" = "¿Estás seguro que deseas cerrar sesión?";
+"config.cerrar_si" = "Sí, cerrar sesión";
+"config.cancelar" = "Cancelar";
+"config.pass_enviada" = "Correo de recuperación enviado";
+"config.nombre_actualizado" = "Nombre actualizado ✅";
+
+// Tabs navegación
+"tab.resumen"   = "FinanzasQG";
+"tab.registrar" = "Registrar";
+"tab.graficas"  = "Gráficas";
+"tab.config"    = "Configuración";
+
+// Transferencias
+"registrar.transferencia" = "Transferencia";
+"registrar.cuenta_origen" = "CUENTA ORIGEN";
+"registrar.cuenta_destino" = "CUENTA DESTINO";
+"registrar.selecciona_origen" = "Selecciona cuenta origen";
+"registrar.selecciona_destino" = "Selecciona cuenta destino";
+
+// Gráficas extra
+"graficas.transferencias" = "Transferencias";
+"graficas.ingreso_porc"   = "% Ingresos";
+"graficas.egreso_porc"    = "% Egresos";
+
+// Copyright
+"app.copyright" = "FinanzasQG © 2026";

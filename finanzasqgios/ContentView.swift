@@ -4,10 +4,10 @@ import LocalAuthentication
 
 struct ContentView: View {
 
+    @ObservedObject var theme = ThemeManager.shared
     @AppStorage("recordarSesion") var recordarSesion = false
     @AppStorage("usarFaceID")     var usarFaceID     = false
     @AppStorage("saved_email")    var savedEmail      = ""
-    @AppStorage("saved_pass")     var savedPass       = ""
 
     @State private var autenticado = false
     @State private var cargando    = true
@@ -16,12 +16,12 @@ struct ContentView: View {
         Group {
             if cargando {
                 ZStack {
-                    Color.fondo.ignoresSafeArea()
+                    Color.fondoApp.ignoresSafeArea()
                     VStack(spacing: 16) {
                         Text("💰").font(.system(size: 60))
                         Text("FinanzasQG")
-                            .font(.title.bold()).foregroundColor(.verdeApp)
-                        ProgressView().tint(.verdeApp)
+                            .font(.title.bold()).foregroundColor(.acentoApp)
+                        ProgressView().tint(.acentoApp)
                     }
                 }
             } else if autenticado {
@@ -30,34 +30,30 @@ struct ContentView: View {
                 LoginView()
             }
         }
+        .preferredColorScheme(theme.temaOscuro ? .dark : .light)
         .onAppear { verificarSesion() }
     }
 
     func verificarSesion() {
-        // Sin sesión guardada → login
         guard Auth.auth().currentUser != nil, recordarSesion else {
             if !recordarSesion { try? Auth.auth().signOut() }
             cargando = false; return
         }
+        let ctx = LAContext()
+        let soporta = ctx.canEvaluatePolicy(
+            .deviceOwnerAuthenticationWithBiometrics, error: nil)
 
-        // Con sesión + FaceID activado
-        if usarFaceID && !savedEmail.isEmpty {
-            let ctx = LAContext()
-            guard ctx.canEvaluatePolicy(
-                .deviceOwnerAuthenticationWithBiometrics, error: nil) else {
-                // Dispositivo no soporta → dejar pasar
-                cargando = false; autenticado = true; return
-            }
+        if usarFaceID && soporta {
             ctx.evaluatePolicy(
                 .deviceOwnerAuthenticationWithBiometrics,
-                localizedReason: "Accede a FinanzasQG") { success, _ in
+                localizedReason: "Accede a FinanzasQG"
+            ) { success, _ in
                 DispatchQueue.main.async {
-                    cargando = false
-                    autenticado = success
+                    cargando = false; autenticado = success
+                    if !success { try? Auth.auth().signOut() }
                 }
             }
         } else {
-            // Solo recordar, sin FaceID
             cargando = false; autenticado = true
         }
     }

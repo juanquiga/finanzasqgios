@@ -7,24 +7,36 @@ extension Color {
         Scanner(string: hex).scanHexInt64(&int)
         let r = Double((int >> 16) & 0xFF) / 255
         let g = Double((int >> 8)  & 0xFF) / 255
-        let b = Double( int        & 0xFF) / 255  // FIX: solo /255 una vez
+        let b = Double( int        & 0xFF) / 255
         self.init(red: r, green: g, blue: b)
     }
-
-    static let fondo     = Color(hex: "#0A1628")
-    static let card      = Color(hex: "#111E2E")
-    static let borde     = Color(hex: "#1E3A4A")
-    static let verdeApp  = Color(hex: "#4CAF50")
-    static let rojoApp   = Color(hex: "#FF5252")
-    static let grisTexto = Color(hex: "#445566")
 }
 
+// COP: $3.000  |  USD: 3USD
+func formatValor(_ valor: Double, moneda: String) -> String {
+    if moneda == "USD" {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = ","
+        f.decimalSeparator = "."
+        f.maximumFractionDigits = 2
+        f.minimumFractionDigits = 0
+        let num = f.string(from: NSNumber(value: valor)) ?? "\(Int(valor))"
+        return "\(num)USD"
+    } else {
+        let f = NumberFormatter()
+        f.numberStyle = .decimal
+        f.groupingSeparator = "."
+        f.decimalSeparator = ","
+        f.maximumFractionDigits = 0
+        let num = f.string(from: NSNumber(value: valor)) ?? "\(Int(valor))"
+        return "$\(num)"
+    }
+}
+
+// Mantener compatibilidad con llamadas existentes (asume COP)
 func formatCOP(_ valor: Double) -> String {
-    let f = NumberFormatter()
-    f.numberStyle = .currency
-    f.locale = Locale(identifier: "es_CO")
-    f.maximumFractionDigits = 0
-    return f.string(from: NSNumber(value: valor)) ?? "$\(Int(valor))"
+    formatValor(valor, moneda: "COP")
 }
 
 func formatFecha(_ timestamp: Double) -> String {
@@ -54,10 +66,10 @@ struct CardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding()
-            .background(Color.card)
+            .background(Color.cardApp)
             .cornerRadius(16)
             .overlay(RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.borde, lineWidth: 1))
+                .stroke(Color.bordeApp, lineWidth: 1))
     }
 }
 

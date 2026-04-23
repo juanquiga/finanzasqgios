@@ -10,4 +10,5 @@ struct Movimiento: Identifiable, Codable {
     var valor: Double = 0
     var timestamp: Double = 0
     var cuenta: String = ""
+    var moneda: String = "COP"
 }

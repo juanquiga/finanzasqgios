@@ -4,49 +4,74 @@ import FirebaseDatabase
 
 struct HomeView: View {
 
+    @ObservedObject var theme = ThemeManager.shared
+    @ObservedObject var loc   = LocalizationManager.shared
+
     @State private var movimientos: [Movimiento] = []
-    @State private var periodo  = "Mensual"
-    @State private var filtro   = "Todo"
-    @State private var nombre   = "Usuario"
+    @State private var periodo   = "Mensual"
+    @State private var filtro    = "Todo"
+    @State private var monedaFiltro = "AMBAS"   // AMBAS | COP | USD
+    @State private var nombre    = "Usuario"
 
-    let periodos = ["Diario", "Mensual", "Anual"]
+    var periodosDisponibles: [(String, String)] {
+        [
+            ("Diario",  t("resumen.diario")),
+            ("Mensual", t("resumen.mensual")),
+            ("Anual",   t("resumen.anual"))
+        ]
+    }
 
-    var movimientosFiltradosPorPeriodo: [Movimiento] {
+    var filtrosDisponibles: [(String, String)] {
+        [
+            ("Todo",     t("resumen.todo")),
+            ("Ingresos", t("resumen.ingresos")),
+            ("Egresos",  t("resumen.egresos"))
+        ]
+    }
+
+    // Paso 1: filtrar por periodo
+    var porPeriodo: [Movimiento] {
         let ahora = Calendar.current
         return movimientos.filter { m in
             let fecha = Date(timeIntervalSince1970: m.timestamp / 1000)
             switch periodo {
-            case "Diario":
-                return ahora.isDateInToday(fecha)
-            case "Mensual":
-                return ahora.isDate(fecha, equalTo: Date(),
-                                    toGranularity: .month)
-            default: // Anual
-                return ahora.isDate(fecha, equalTo: Date(),
-                                    toGranularity: .year)
+            case "Diario":   return ahora.isDateInToday(fecha)
+            case "Mensual":  return ahora.isDate(fecha, equalTo: Date(), toGranularity: .month)
+            default:         return ahora.isDate(fecha, equalTo: Date(), toGranularity: .year)
             }
         }
     }
 
+    // Paso 2: filtrar por moneda
+    var porMoneda: [Movimiento] {
+        switch monedaFiltro {
+        case "COP": return porPeriodo.filter { $0.moneda == "COP" }
+        case "USD": return porPeriodo.filter { $0.moneda == "USD" }
+        default:    return porPeriodo
+        }
+    }
+
+    // Paso 3: filtrar por tipo
     var movimientosMostrados: [Movimiento] {
         switch filtro {
-        case "Ingresos": return movimientosFiltradosPorPeriodo
-            .filter { $0.tipoTransaccion == "Ingreso" }
-        case "Egresos":  return movimientosFiltradosPorPeriodo
-            .filter { $0.tipoTransaccion == "Egreso" }
-        default:         return movimientosFiltradosPorPeriodo
+        case "Ingresos": return porMoneda.filter { $0.tipoTransaccion == "Ingreso" }
+        case "Egresos":  return porMoneda.filter { $0.tipoTransaccion == "Egreso" }
+        default:         return porMoneda
         }
     }
 
     var totalIngresos: Double {
-        movimientosFiltradosPorPeriodo
-            .filter { $0.tipoTransaccion == "Ingreso" }.reduce(0) { $0 + $1.valor }
+        porMoneda.filter { $0.tipoTransaccion == "Ingreso" }.reduce(0) { $0 + $1.valor }
     }
     var totalEgresos: Double {
-        movimientosFiltradosPorPeriodo
-            .filter { $0.tipoTransaccion == "Egreso" }.reduce(0) { $0 + $1.valor }
+        porMoneda.filter { $0.tipoTransaccion == "Egreso" }.reduce(0) { $0 + $1.valor }
     }
     var balance: Double { totalIngresos - totalEgresos }
+
+    // Moneda a mostrar en los totales (si filtra una sola, usa esa; si AMBAS usa COP)
+    var monedaMostrar: String {
+        monedaFiltro == "USD" ? "USD" : "COP"
+    }
 
     var body: some View {
         ScrollView {
@@ -55,44 +80,56 @@ struct HomeView: View {
                 // Header
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("FinanzasQG 💰")
-                            .font(.title2.bold()).foregroundColor(.verdeApp)
-                        Text("Hola, \(nombre) 👋")
-                            .font(.subheadline).foregroundColor(.grisTexto)
+                        Text(t("resumen.titulo"))
+                            .font(.title2.bold()).foregroundColor(Color.acentoApp)
+                        Text("\(t("resumen.hola")), \(nombre) 👋")
+                            .font(.subheadline).foregroundColor(Color.textoSecundario)
                     }
                     Spacer()
                 }
                 .padding()
-                .background(Color.card)
-                .cornerRadius(16)
+                .background(Color.cardApp).cornerRadius(16)
                 .overlay(RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.borde, lineWidth: 1))
+                    .stroke(Color.bordeApp, lineWidth: 1))
 
                 // Selector período
                 HStack(spacing: 8) {
-                    ForEach(periodos, id: \.self) { p in
-                        Button(p) { periodo = p }
+                    ForEach(periodosDisponibles, id: \.0) { key, label in
+                        Button(label) { periodo = key }
                             .font(.caption.bold())
                             .padding(.horizontal, 12).padding(.vertical, 8)
-                            .background(periodo == p
-                                ? Color.verdeApp : Color.card)
-                            .foregroundColor(periodo == p
-                                ? Color(hex: "#050510") : Color.verdeApp)
+                            .background(periodo == key ? Color.acentoApp : Color.cardApp)
+                            .foregroundColor(periodo == key
+                                ? Color(hex: "#050510") : Color.textoSecundario)
                             .cornerRadius(10)
                     }
                     Spacer()
                 }
 
-                // Filtro Tipo
+                // Filtro tipo
                 HStack(spacing: 8) {
-                    ForEach(["Todo", "Ingresos", "Egresos"], id: \.self) { f in
-                        Button(f) { filtro = f }
+                    ForEach(filtrosDisponibles, id: \.0) { key, label in
+                        Button(label) { filtro = key }
                             .font(.caption)
                             .padding(.horizontal, 10).padding(.vertical, 6)
-                            .background(filtro == f
-                                ? Color.verdeApp : Color.card)
-                            .foregroundColor(filtro == f
-                                ? Color(hex: "#050510") : Color.verdeApp)
+                            .background(filtro == key ? Color.acentoApp : Color.cardApp)
+                            .foregroundColor(filtro == key
+                                ? Color(hex: "#050510") : Color.acentoApp)
+                            .cornerRadius(8)
+                    }
+                    Spacer()
+                }
+
+                // Filtro moneda
+                HStack(spacing: 8) {
+                    ForEach([("AMBAS","🌐 Ambas"),("COP","🇨🇴 COP"),("USD","🇺🇸 USD")],
+                            id: \.0) { key, label in
+                        Button(label) { monedaFiltro = key }
+                            .font(.caption)
+                            .padding(.horizontal, 10).padding(.vertical, 6)
+                            .background(monedaFiltro == key ? Color.acentoApp : Color.cardApp)
+                            .foregroundColor(monedaFiltro == key
+                                ? Color(hex: "#050510") : Color.acentoApp)
                             .cornerRadius(8)
                     }
                     Spacer()
@@ -101,40 +138,42 @@ struct HomeView: View {
                 // Cards resumen
                 HStack(spacing: 10) {
                     if filtro != "Egresos" {
-                        cardResumen("📈 Ingresos", totalIngresos, .verdeApp)
+                        cardResumen("📈 \(t("resumen.ingresos"))",
+                                    totalIngresos, monedaMostrar, Color.acentoApp)
                     }
                     if filtro != "Ingresos" {
-                        cardResumen("📉 Egresos", totalEgresos, .rojoApp)
+                        cardResumen("📉 \(t("resumen.egresos"))",
+                                    totalEgresos, monedaMostrar, Color.rojoFinanzas)
                     }
                 }
 
                 if filtro == "Todo" {
                     HStack {
-                        Text("Balance neto").foregroundColor(.grisTexto)
+                        Text(t("resumen.balance")).foregroundColor(Color.rojoFinanzas)
                         Spacer()
-                        Text(formatCOP(balance))
+                        Text(formatValor(balance, moneda: monedaMostrar))
                             .font(.title3.bold())
-                            .foregroundColor(balance >= 0 ? .verdeApp : .rojoApp)
+                            .foregroundColor(balance >= 0 ? Color.acentoApp : Color.rojoFinanzas)
                     }
                     .padding()
-                    .background(Color.card).cornerRadius(16)
+                    .background(Color.cardApp).cornerRadius(16)
                     .overlay(RoundedRectangle(cornerRadius: 16)
-                        .stroke(Color.borde, lineWidth: 1))
+                        .stroke(Color.bordeApp, lineWidth: 1))
                 }
 
                 // Lista
                 if movimientosMostrados.isEmpty {
                     VStack(spacing: 10) {
                         Text("📭").font(.system(size: 40))
-                        Text("Sin movimientos en este período")
-                            .foregroundColor(.grisTexto).font(.subheadline)
+                        Text(t("resumen.vacio"))
+                            .foregroundColor(Color.textoSecundario).font(.subheadline)
                     }
                     .frame(maxWidth: .infinity).padding(30)
-                    .background(Color.card).cornerRadius(16)
+                    .background(Color.cardApp).cornerRadius(16)
                 } else {
                     VStack(spacing: 1) {
-                        Text("Movimientos recientes")
-                            .font(.caption.bold()).foregroundColor(.grisTexto)
+                        Text(t("resumen.recientes"))
+                            .font(.caption.bold()).foregroundColor(Color.textoSecundario)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.bottom, 6)
 
@@ -147,20 +186,22 @@ struct HomeView: View {
             }
             .padding()
         }
-        .background(Color.fondo.ignoresSafeArea())
+        .background(Color.fondoApp.ignoresSafeArea())
         .onAppear { cargarNombre(); cargarMovimientos() }
+        .id(loc.idioma)
     }
 
-    func cardResumen(_ titulo: String, _ valor: Double, _ color: Color) -> some View {
+    func cardResumen(_ titulo: String, _ valor: Double,
+                     _ moneda: String, _ color: Color) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(titulo).font(.caption.bold()).foregroundColor(color)
-            Text(formatCOP(valor))
+            Text(formatValor(valor, moneda: moneda))
                 .font(.headline.bold()).foregroundColor(color)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(Color.card).cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.borde, lineWidth: 1))
+        .background(Color.cardApp).cornerRadius(16)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.bordeApp, lineWidth: 1))
     }
 
     func itemMovimiento(_ m: Movimiento) -> some View {
@@ -176,21 +217,26 @@ struct HomeView: View {
                 Text(m.categoria.isEmpty ? m.tipoTransaccion : m.categoria)
                     .font(.subheadline.bold()).foregroundColor(.white)
                 Text(m.detalle.isEmpty ? m.subcategoria : m.detalle)
-                    .font(.caption).foregroundColor(.grisTexto)
+                    .font(.caption).foregroundColor(Color.textoSecundario)
                 Text(formatFecha(m.timestamp))
-                    .font(.caption2).foregroundColor(Color.grisTexto.opacity(0.7))
+                    .font(.caption2).foregroundColor(Color.textoSecundario.opacity(0.7))
             }
 
             Spacer()
 
-            Text(formatCOP(m.valor))
-                .font(.subheadline.bold())
-                .foregroundColor(m.tipoTransaccion == "Ingreso"
-                    ? Color(hex: "#69F0AE") : .rojoApp)
+            VStack(alignment: .trailing, spacing: 2) {
+                Text(formatValor(m.valor, moneda: m.moneda))
+                    .font(.subheadline.bold())
+                    .foregroundColor(m.tipoTransaccion == "Ingreso"
+                        ? Color(hex: "#69F0AE") : Color.rojoFinanzas)
+                Text(m.moneda)
+                    .font(.caption2)
+                    .foregroundColor(.textoSecundario)
+            }
         }
         .padding()
-        .background(Color.card).cornerRadius(14)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.borde, lineWidth: 1))
+        .background(Color.cardApp).cornerRadius(14)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.bordeApp, lineWidth: 1))
         .padding(.bottom, 4)
     }
 
@@ -215,14 +261,16 @@ struct HomeView: View {
                 for case let child as DataSnapshot in snap.children {
                     let d = child.value as? [String: Any] ?? [:]
                     temp.append(Movimiento(
-                        id: d["id"] as? String ?? "",
+                        id:              d["id"]              as? String ?? "",
                         tipoTransaccion: d["tipoTransaccion"] as? String ?? "",
-                        detalle: d["detalle"] as? String ?? "",
-                        categoria: d["categoria"] as? String ?? "",
-                        subcategoria: d["subcategoria"] as? String ?? "",
-                        valor: d["valor"] as? Double ?? 0,
-                        timestamp: d["timestamp"] as? Double ?? 0,
-                        cuenta: d["cuenta"] as? String ?? ""
+                        detalle:         d["detalle"]         as? String ?? "",
+                        categoria:       d["categoria"]       as? String ?? "",
+                        subcategoria:    d["subcategoria"]    as? String ?? "",
+                        subsubcategoria: d["subsubcategoria"] as? String ?? "",
+                        valor:           d["valor"]           as? Double ?? 0,
+                        timestamp:       d["timestamp"]       as? Double ?? 0,
+                        cuenta:          d["cuenta"]          as? String ?? "",
+                        moneda:          d["moneda"]          as? String ?? "COP"
                     ))
                 }
                 movimientos = temp

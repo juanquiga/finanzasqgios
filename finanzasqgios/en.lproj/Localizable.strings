@@ -1,0 +1,122 @@
+// Login screen
+"login.titulo" = "FinanzasQG";
+"login.subtitulo" = "Control your finances intelligently";
+"login.correo" = "Email or username";
+"login.contrasena" = "Password";
+"login.recordar" = "Remember session";
+"login.olvide" = "Forgot your password?";
+"login.ingresar" = "SIGN IN";
+"login.faceid" = "Sign in with Face ID";
+"login.google" = "Continue with Google";
+"login.apple" = "Continue with Apple";
+"login.crear" = "Create new account";
+"login.copyright" = "FinanzasQG © 2025";
+"login.error.campos" = "Fill in all fields";
+"login.error.credenciales" = "Incorrect credentials";
+"login.error.usuario" = "User not found";
+"login.reset.titulo" = "Reset password";
+"login.reset.mensaje" = "Enter your registered email";
+"login.reset.exito" = "Email sent ✅";
+
+// Sign up
+"signup.titulo" = "Create account";
+"signup.nombre" = "Username";
+"signup.correo" = "Email address";
+"signup.contrasena" = "Password (min. 6)";
+"signup.boton" = "CREATE ACCOUNT";
+"signup.exito" = "Account created! 🎉 Sign in to continue.";
+"signup.volver" = "← Back to Login";
+"signup.ir_login" = "GO TO LOGIN";
+
+// Username prompt
+"nombre.titulo" = "What should we call you?";
+"nombre.subtitulo" = "Choose your FinanzasQG username";
+"nombre.campo" = "Your username";
+"nombre.boton" = "CONTINUE";
+"nombre.error" = "Enter a valid name";
+
+// Home/Summary
+"resumen.titulo" = "FinanzasQG 💰";
+"resumen.hola" = "Hello";
+"resumen.diario" = "Daily";
+"resumen.mensual" = "Monthly";
+"resumen.anual" = "Annual";
+"resumen.todo" = "All";
+"resumen.ingresos" = "Income";
+"resumen.egresos" = "Expenses";
+"resumen.balance" = "Net balance";
+"resumen.recientes" = "Recent movements";
+"resumen.vacio" = "No movements in this period";
+
+// Register
+"registrar.titulo" = "Register Movement";
+"registrar.egreso" = "Expense";
+"registrar.ingreso" = "Income";
+"registrar.categoria" = "CATEGORY";
+"registrar.subcategoria" = "SUBCATEGORY";
+"registrar.subsubcategoria" = "SUBCATEGORY DETAIL";
+"registrar.detalle" = "DETAIL (optional)";
+"registrar.valor" = "AMOUNT ($)";
+"registrar.cuenta" = "ACCOUNT";
+"registrar.guardar" = "SAVE MOVEMENT";
+"registrar.guardado" = "Movement saved!";
+"registrar.selecciona_cat" = "Select category";
+"registrar.selecciona_sub" = "Select subcategory";
+"registrar.selecciona_subsub" = "Select option";
+"registrar.selecciona_cta" = "Select account";
+
+// Charts
+"graficas.titulo" = "Charts & History";
+"graficas.mensual" = "Monthly";
+"graficas.anual" = "Annual";
+"graficas.todo" = "All";
+"graficas.ingresos" = "Income";
+"graficas.egresos" = "Expenses";
+"graficas.por_categoria" = "By Category";
+"graficas.vs" = "Income vs Expenses";
+"graficas.historial" = "VIEW FULL HISTORY";
+"graficas.sin_datos" = "No data for this period";
+
+// History
+"historial.titulo" = "History";
+"historial.buscar" = "Search category or detail...";
+"historial.registros" = "records";
+
+// Config
+"config.titulo" = "Settings";
+"config.cambiar_nombre" = "Change username";
+"config.cambiar_pass" = "Change password";
+"config.modificar" = "Modify records";
+"config.faceid" = "Use Face ID";
+"config.recordar" = "Remember session";
+"config.tema" = "Dark mode";
+"config.idioma" = "Language";
+"config.contacto" = "Contact us";
+"config.terminos" = "Terms and conditions";
+"config.cerrar" = "SIGN OUT";
+"config.cerrar_confirm" = "Are you sure you want to sign out?";
+"config.cerrar_si" = "Yes, sign out";
+"config.cancelar" = "Cancel";
+"config.pass_enviada" = "Recovery email sent";
+"config.nombre_actualizado" = "Username updated ✅";
+
+// Tab navigation
+"tab.resumen"   = "FinanzasQG";
+"tab.registrar" = "Register";
+"tab.graficas"  = "Charts";
+"tab.config"    = "Settings";
+
+// Transfers
+"registrar.transferencia"   = "Transfer";
+"registrar.cuenta_origen"   = "SOURCE ACCOUNT";
+"registrar.cuenta_destino"  = "DESTINATION ACCOUNT";
+"registrar.selecciona_origen"  = "Select source account";
+"registrar.selecciona_destino" = "Select destination account";
+
+// Charts extra
+"graficas.transferencias" = "Transfers";
+"graficas.ingreso_porc"   = "% Income";
+"graficas.egreso_porc"    = "% Expenses";
+
+// Copyright
+"app.copyright" = "FinanzasQG © 2026";

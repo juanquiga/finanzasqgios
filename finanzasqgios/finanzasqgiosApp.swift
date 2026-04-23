@@ -1,5 +1,6 @@
 import SwiftUI
 import Firebase
+import GoogleSignIn
 
 @main
 struct finanzasqgiosApp: App {
@@ -12,6 +13,9 @@ struct finanzasqgiosApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    GIDSignIn.sharedInstance.handle(url)
+                }
         }
     }
 }

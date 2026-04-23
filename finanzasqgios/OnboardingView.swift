@@ -4,6 +4,8 @@ import FirebaseDatabase
 
 struct OnboardingView: View {
 
+    @ObservedObject var theme = ThemeManager.shared
+    @ObservedObject var loc   = LocalizationManager.shared
     @State private var page    = 0
     @State private var irSetup = false
 
@@ -17,18 +19,19 @@ struct OnboardingView: View {
         ("📅", "Resumen inteligente",
          "Filtra por Diario, Mensual o Anual. Ve solo Ingresos o Egresos según necesites."),
         ("🎯", "Personaliza tu app",
-         "Crea tus propias categorías, subcategorías y cuentas. ¡Ahora vamos a configurarlas!")
+         "Crea tus propias categorías, subcategorías y cuentas.")
     ]
 
     var body: some View {
         ZStack {
-            Color.fondo.ignoresSafeArea()
+            Color.fondoApp.ignoresSafeArea()
 
             VStack(spacing: 0) {
 
+                // TabView con swipe
                 TabView(selection: $page) {
                     ForEach(0..<paginas.count, id: \.self) { i in
-                        pantallaOnboarding(paginas[i], index: i)
+                        pantallaOnboarding(paginas[i])
                             .tag(i)
                     }
                 }
@@ -37,53 +40,75 @@ struct OnboardingView: View {
                 // Indicador de página
                 HStack(spacing: 8) {
                     ForEach(0..<paginas.count, id: \.self) { i in
-                        Circle()
-                            .fill(i == page ? Color.verdeApp : Color.borde)
-                            .frame(width: i == page ? 10 : 6,
-                                   height: i == page ? 10 : 6)
-                            .animation(.easeInOut, value: page)
+                        Button {
+                            withAnimation { page = i }
+                        } label: {
+                            Circle()
+                                .fill(i == page ? Color.acentoApp : Color.bordeApp)
+                                .frame(width: i == page ? 10 : 6,
+                                       height: i == page ? 10 : 6)
+                                .contentShape(Circle())
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .animation(.easeInOut, value: page)
                     }
                 }
                 .padding(.bottom, 20)
 
                 // Botones
                 VStack(spacing: 12) {
-                    Button(page < paginas.count - 1 ? "Siguiente →" : "¡PERSONALIZAR!") {
+
+                    // Botón Siguiente / Personalizar — TODO el área es tappable
+                    Button {
                         withAnimation {
                             if page < paginas.count - 1 { page += 1 }
                             else { irSetup = true }
                         }
+                    } label: {
+                        Text(page < paginas.count - 1 ? "Siguiente →" : "¡PERSONALIZAR!")
+                            .fontWeight(.bold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.gradienteBoton)
+                            .cornerRadius(14)
+                            .contentShape(Rectangle())
                     }
-                    .buttonStyle(BotonVerde())
+                    .buttonStyle(PlainButtonStyle())
                     .padding(.horizontal)
 
                     if page < paginas.count - 1 {
-                        Button("Saltar") { irSetup = true }
-                            .foregroundColor(.grisTexto)
-                            .font(.subheadline)
+                        Button {
+                            irSetup = true
+                        } label: {
+                            Text("Saltar")
+                                .foregroundColor(.textoSecundario)
+                                .font(Font.subheadline)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 .padding(.bottom, 40)
             }
         }
-        .fullScreenCover(isPresented: $irSetup) {
-            SetupCategoriasView()
-        }
+        .preferredColorScheme(theme.temaOscuro ? .dark : .light)
+        .fullScreenCover(isPresented: $irSetup) { SetupCategoriasView() }
     }
 
-    func pantallaOnboarding(_ data: (String, String, String),
-                             index: Int) -> some View {
+    func pantallaOnboarding(_ data: (String, String, String)) -> some View {
         VStack(spacing: 24) {
             Spacer()
-            Text(data.0).font(.system(size: 80))
+            Text(data.0).font(Font.system(size: 80))
             Text(data.1)
-                .font(.title2.bold()).foregroundColor(.verdeApp)
+                .font(Font.title2.bold()).foregroundColor(.acentoApp)
                 .multilineTextAlignment(.center)
             Text(data.2)
-                .foregroundColor(.white.opacity(0.8))
+                .foregroundColor(.textoPrincipal.opacity(0.8))
                 .multilineTextAlignment(.center)
-                .font(.body)
-                .padding(.horizontal, 20)
+                .font(Font.body).padding(.horizontal, 20)
             Spacer()
         }
         .padding()
