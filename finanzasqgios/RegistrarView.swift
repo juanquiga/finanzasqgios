@@ -26,7 +26,7 @@ struct RegistrarView: View {
 
     @FocusState private var campoActivo: Bool
 
-    let calendario = Calendar.current
+    let cal = Calendar.current
 
     var arbolActual: [CategoriaItem] {
         tipo == "Egreso" ? config.egresosTree : config.ingresosTree
@@ -63,18 +63,13 @@ struct RegistrarView: View {
     var fechaLabel: String {
         let f = DateFormatter()
         f.locale = Locale(identifier: "es_CO")
-        if calendario.isDateInToday(fechaSelec) {
-            return "📅 Hoy — \(fechaFormato("dd MMM yyyy"))"
-        } else if calendario.isDateInYesterday(fechaSelec) {
-            return "📅 Ayer — \(fechaFormato("dd MMM yyyy"))"
+        if cal.isDateInToday(fechaSelec) {
+            f.dateFormat = "'Hoy —' dd MMM yyyy"
+        } else if cal.isDateInYesterday(fechaSelec) {
+            f.dateFormat = "'Ayer —' dd MMM yyyy"
+        } else {
+            f.dateFormat = "EEEE dd 'de' MMMM yyyy"
         }
-        return "📅 \(fechaFormato("EEEE dd MMM yyyy"))"
-    }
-
-    func fechaFormato(_ formato: String) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "es_CO")
-        f.dateFormat = formato
         return f.string(from: fechaSelec)
     }
 
@@ -209,13 +204,16 @@ struct RegistrarView: View {
                             puedeGuardar
                             ? AnyView(
                                 tipo == "Transferencia"
-                                ? LinearGradient(colors: [Color(hex: "#1565C0"), Color(hex: "#0D47A1")],
-                                                 startPoint: .leading, endPoint: .trailing)
+                                ? LinearGradient(
+                                    colors: [Color(hex: "#1565C0"), Color(hex: "#0D47A1")],
+                                    startPoint: .leading, endPoint: .trailing)
                                 : tipo == "Egreso"
-                                    ? LinearGradient(colors: [Color(hex: "#C62828"), Color(hex: "#B71C1C")],
-                                                     startPoint: .leading, endPoint: .trailing)
-                                    : LinearGradient(colors: [Color(hex: "#2E7D32"), Color(hex: "#1B5E20")],
-                                                     startPoint: .leading, endPoint: .trailing))
+                                    ? LinearGradient(
+                                        colors: [Color(hex: "#C62828"), Color(hex: "#B71C1C")],
+                                        startPoint: .leading, endPoint: .trailing)
+                                    : LinearGradient(
+                                        colors: [Color(hex: "#2E7D32"), Color(hex: "#1B5E20")],
+                                        startPoint: .leading, endPoint: .trailing))
                             : AnyView(Color.textoSecundario.opacity(0.3))
                         )
                         .foregroundColor(puedeGuardar ? .white : .textoSecundario)
@@ -244,15 +242,19 @@ struct RegistrarView: View {
         }
         .preferredColorScheme(theme.temaOscuro ? .dark : .light)
         .id(loc.idioma)
+        // Actualizar fecha a hoy cada vez que se abre la vista
+        .onAppear {
+            fechaSelec = Date()
+        }
     }
 
-    // MARK: - Selector de fecha CORREGIDO
+    // MARK: - Selector de fecha
     var selectorFecha: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("FECHA DEL MOVIMIENTO")
                 .font(Font.caption.bold()).foregroundColor(.acentoApp).kerning(1.2)
 
-            // Botón que muestra la fecha actual
+            // Botón principal
             Button {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                     showCalendario.toggle()
@@ -263,15 +265,19 @@ struct RegistrarView: View {
                     Image(systemName: "calendar.circle.fill")
                         .foregroundColor(.acentoApp).font(Font.title3)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(fechaLabel)
+                        Text(fechaLabel.capitalized)
                             .font(Font.subheadline).foregroundColor(.textoPrincipal)
-                        if !calendario.isDateInToday(fechaSelec) {
-                            Text("Fecha modificada")
-                                .font(Font.caption2).foregroundColor(Color(hex: "#FF9800"))
-                        }
+                        Text(cal.isDateInToday(fechaSelec)
+                             ? "Toca para cambiar la fecha"
+                             : "Fecha personalizada — toca para cambiar")
+                            .font(Font.caption2)
+                            .foregroundColor(cal.isDateInToday(fechaSelec)
+                                             ? Color.textoSecundario
+                                             : Color(hex: "#FF9800"))
                     }
                     Spacer()
-                    Image(systemName: showCalendario ? "chevron.up.circle" : "chevron.down.circle")
+                    Image(systemName: showCalendario
+                          ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
                         .foregroundColor(.acentoApp).font(Font.body)
                 }
                 .padding()
@@ -279,53 +285,23 @@ struct RegistrarView: View {
                     ? Color.acentoApp.opacity(0.1) : Color.inputFondo)
                 .cornerRadius(14)
                 .overlay(RoundedRectangle(cornerRadius: 14)
-                    .stroke(showCalendario
-                        ? Color.acentoApp : Color.bordeApp, lineWidth: 1.5))
+                    .stroke(showCalendario ? Color.acentoApp : Color.bordeApp, lineWidth: 1.5))
             }
             .buttonStyle(PlainButtonStyle())
-
-            // Accesos rápidos siempre visibles
-            HStack(spacing: 8) {
-                botonFechaRapida("Hoy", Date())
-                botonFechaRapida("Ayer", Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date())
-                botonFechaRapida("-2d", Calendar.current.date(byAdding: .day, value: -2, to: Date()) ?? Date())
-                botonFechaRapida("-3d", Calendar.current.date(byAdding: .day, value: -3, to: Date()) ?? Date())
-            }
 
             // Calendario expandible
             if showCalendario {
                 CalendarioPersonalizado(fechaSeleccionada: $fechaSelec) {
-                    // Al seleccionar, cerrar el calendario
                     withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                         showCalendario = false
                     }
                 }
                 .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .top)),
-                    removal:   .opacity.combined(with: .scale(scale: 0.95, anchor: .top))
+                    insertion: .opacity.combined(with: .scale(scale: 0.97, anchor: .top)),
+                    removal:   .opacity.combined(with: .scale(scale: 0.97, anchor: .top))
                 ))
             }
         }
-    }
-
-    func botonFechaRapida(_ label: String, _ fecha: Date) -> some View {
-        let esActual = calendario.isDate(fechaSelec, inSameDayAs: fecha)
-        return Button {
-            withAnimation(.spring(response: 0.3)) {
-                fechaSelec   = fecha
-                showCalendario = false
-            }
-        } label: {
-            Text(label)
-                .font(Font.caption.bold())
-                .frame(maxWidth: .infinity).padding(.vertical, 8)
-                .background(esActual ? Color.acentoApp : Color.cardApp)
-                .foregroundColor(esActual ? .white : Color.acentoApp)
-                .cornerRadius(8)
-                .overlay(RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.acentoApp.opacity(0.4), lineWidth: 1))
-        }
-        .buttonStyle(PlainButtonStyle())
     }
 
     // MARK: - Selector moneda + valor
@@ -419,7 +395,8 @@ struct RegistrarView: View {
                 Image(systemName: icono).foregroundColor(.acentoApp).frame(width: 20)
                 TextField("", text: texto)
                     .foregroundColor(.textoPrincipal).keyboardType(keyboard)
-                    .focused($campoActivo).submitLabel(.done).onSubmit { campoActivo = false }
+                    .focused($campoActivo).submitLabel(.done)
+                    .onSubmit { campoActivo = false }
             }
             .padding().background(Color.inputFondo).cornerRadius(12)
             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.bordeApp, lineWidth: 1))
@@ -450,13 +427,13 @@ struct RegistrarView: View {
         let ref = Database.database().reference()
             .child("movimientos").child(uid).childByAutoId()
 
-        // Combinar fecha elegida + hora actual
-        var comps  = calendario.dateComponents([.year, .month, .day], from: fechaSelec)
-        let ahora  = calendario.dateComponents([.hour, .minute, .second], from: Date())
+        // Combinar fecha elegida + hora actual para el timestamp
+        var comps  = cal.dateComponents([.year, .month, .day], from: fechaSelec)
+        let ahora  = cal.dateComponents([.hour, .minute, .second], from: Date())
         comps.hour   = ahora.hour
         comps.minute = ahora.minute
         comps.second = ahora.second
-        let fechaFinal    = calendario.date(from: comps) ?? fechaSelec
+        let fechaFinal     = cal.date(from: comps) ?? fechaSelec
         let timestampFinal = fechaFinal.timeIntervalSince1970 * 1000
 
         var data: [String: Any] = [
@@ -491,9 +468,10 @@ struct RegistrarView: View {
                     errorMsg = "Error: \(error.localizedDescription)"
                 } else {
                     valorTexto = ""; detalle = ""; categoria = ""
-                    subcategoria = ""; subsubcategoria = ""; cuenta = ""
-                    cuentaOrigen = ""; cuentaDestino = ""; errorMsg = ""
-                    fechaSelec = Date()
+                    subcategoria = ""; subsubcategoria = ""
+                    cuenta = ""; cuentaOrigen = ""; cuentaDestino = ""
+                    errorMsg = ""
+                    fechaSelec = Date() // reset a hoy
                     withAnimation { guardado = true }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                         withAnimation { guardado = false }
@@ -504,180 +482,192 @@ struct RegistrarView: View {
     }
 }
 
-// MARK: - Calendario Personalizado (funciona 100% sin restricciones raras)
+// MARK: - Calendario Personalizado
 struct CalendarioPersonalizado: View {
 
     @Binding var fechaSeleccionada: Date
     var alSeleccionar: () -> Void
 
-    @State private var mesActual = Date()
+    @State private var mesVisible = Date()
     private let cal = Calendar.current
 
+    // Días del mes incluyendo espacios vacíos al inicio
     var diasEnMes: [Date?] {
-        guard let inicio = cal.date(from: cal.dateComponents([.year, .month], from: mesActual)),
-              let rango  = cal.range(of: .day, in: .month, for: mesActual) else { return [] }
+        guard
+            let inicioDeMes = cal.date(
+                from: cal.dateComponents([.year, .month], from: mesVisible)),
+            let cantDias = cal.range(of: .day, in: .month, for: mesVisible)
+        else { return [] }
 
-        let primerDiaSemana = cal.component(.weekday, from: inicio) - 1
-        var dias: [Date?] = Array(repeating: nil, count: primerDiaSemana)
-        for d in rango {
-            if let fecha = cal.date(byAdding: .day, value: d - 1, to: inicio) {
-                dias.append(fecha)
+        // weekday: 1=domingo ... 7=sábado
+        let offset = cal.component(.weekday, from: inicioDeMes) - 1
+        var lista: [Date?] = Array(repeating: nil, count: offset)
+
+        for d in cantDias {
+            if let fecha = cal.date(byAdding: .day, value: d - 1, to: inicioDeMes) {
+                lista.append(fecha)
             }
         }
-        // Completar última fila
-        while dias.count % 7 != 0 { dias.append(nil) }
-        return dias
+        // Completar la última fila para que sea múltiplo de 7
+        while lista.count % 7 != 0 { lista.append(nil) }
+        return lista
     }
 
-    var nombreMes: String {
+    var tituloMes: String {
         let f = DateFormatter()
-        f.locale    = Locale(identifier: "es_CO")
-        f.dateFormat = "MMMM yyyy"
-        return f.string(from: mesActual).capitalized
+        f.locale     = Locale(identifier: "es_CO")
+        f.dateFormat = "MMMM  yyyy"
+        return f.string(from: mesVisible).capitalized
     }
 
-    let diasSemana = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"]
+    var esMesActual: Bool {
+        cal.isDate(mesVisible, equalTo: Date(), toGranularity: .month)
+    }
+
+    let cabecera = ["Do","Lu","Ma","Mi","Ju","Vi","Sá"]
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
 
-            // Navegación mes
+            // ── Navegación de mes ──
             HStack {
+                // Retroceder — sin límite
                 Button {
-                    cambiarMes(-1)
+                    mover(-1)
                 } label: {
                     Image(systemName: "chevron.left.circle.fill")
-                        .foregroundColor(.acentoApp).font(Font.title3)
+                        .font(Font.title2).foregroundColor(.acentoApp)
                 }
                 .buttonStyle(PlainButtonStyle())
 
                 Spacer()
 
-                Text(nombreMes)
+                Text(tituloMes)
                     .font(Font.headline.bold()).foregroundColor(.textoPrincipal)
 
                 Spacer()
 
-                // Solo avanzar si no estamos en el mes actual
+                // Avanzar — bloqueado en mes actual
                 Button {
-                    cambiarMes(1)
+                    mover(1)
                 } label: {
                     Image(systemName: "chevron.right.circle.fill")
-                        .foregroundColor(
-                            esMesActual ? Color.textoSecundario.opacity(0.3) : Color.acentoApp
-                        )
-                        .font(Font.title3)
+                        .font(Font.title2)
+                        .foregroundColor(esMesActual
+                            ? Color.textoSecundario.opacity(0.25) : Color.acentoApp)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .disabled(esMesActual)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 4)
 
-            // Cabecera días semana
+            // ── Cabecera días semana ──
             HStack(spacing: 0) {
-                ForEach(diasSemana, id: \.self) { dia in
-                    Text(dia)
+                ForEach(cabecera, id: \.self) { d in
+                    Text(d)
                         .font(Font.caption2.bold())
                         .foregroundColor(.textoSecundario)
                         .frame(maxWidth: .infinity)
                 }
             }
 
-            // Grid de días
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 2), count: 7),
-                      spacing: 6) {
-                ForEach(Array(diasEnMes.enumerated()), id: \.offset) { _, fecha in
-                    if let fecha {
-                        let esHoy       = cal.isDateInToday(fecha)
-                        let esSelec     = cal.isDate(fecha, inSameDayAs: fechaSeleccionada)
-                        let esFuturo    = fecha > Date()
-
-                        Button {
-                            if !esFuturo {
-                                fechaSeleccionada = fecha
-                                alSeleccionar()
-                            }
-                        } label: {
-                            Text("\(cal.component(.day, from: fecha))")
-                                .font(Font.subheadline.bold())
-                                .frame(width: 38, height: 38)
-                                .background(
-                                    esSelec ? Color.acentoApp
-                                        : esHoy ? Color.acentoApp.opacity(0.2)
-                                        : Color.clear
-                                )
-                                .foregroundColor(
-                                    esFuturo ? Color.textoSecundario.opacity(0.25)
-                                        : esSelec ? .white
-                                        : esHoy ? Color.acentoApp
-                                        : Color.textoPrincipal
-                                )
-                                .clipShape(Circle())
-                                .overlay(
-                                    Circle().stroke(
-                                        esHoy && !esSelec
-                                            ? Color.acentoApp.opacity(0.5) : Color.clear,
-                                        lineWidth: 1.5)
-                                )
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .disabled(esFuturo)
+            // ── Grid días ──
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7),
+                spacing: 8
+            ) {
+                ForEach(Array(diasEnMes.enumerated()), id: \.offset) { _, diaOpt in
+                    if let dia = diaOpt {
+                        diaBoton(dia)
                     } else {
-                        Color.clear.frame(width: 38, height: 38)
+                        Color.clear.frame(height: 38)
                     }
                 }
             }
 
-            // Botón "Ir a hoy"
+            // ── Botón "Ir a hoy" (solo si no estamos en el mes actual) ──
             if !esMesActual {
                 Button {
                     withAnimation(.spring(response: 0.3)) {
-                        mesActual      = Date()
-                        fechaSeleccionada = Date()
+                        mesVisible         = Date()
+                        fechaSeleccionada  = Date()
                         alSeleccionar()
                     }
                 } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "calendar.badge.clock")
-                        Text("Ir a hoy")
-                            .fontWeight(.semibold)
-                    }
-                    .font(Font.caption)
-                    .frame(maxWidth: .infinity).padding(10)
-                    .background(Color.acentoApp.opacity(0.15)).cornerRadius(10)
-                    .foregroundColor(.acentoApp)
-                    .overlay(RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.acentoApp.opacity(0.3), lineWidth: 1))
+                    Label("Ir a hoy", systemImage: "calendar.badge.clock")
+                        .font(Font.caption.bold()).foregroundColor(.acentoApp)
+                        .frame(maxWidth: .infinity).padding(10)
+                        .background(Color.acentoApp.opacity(0.1)).cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.acentoApp.opacity(0.3), lineWidth: 1))
                 }
                 .buttonStyle(PlainButtonStyle())
             }
         }
-        .padding(12)
-        .background(Color.cardApp).cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16)
-            .stroke(Color.acentoApp.opacity(0.4), lineWidth: 1.5))
-        .shadow(color: Color.black.opacity(0.18), radius: 10, y: 4)
+        .padding(14)
+        .background(Color.cardApp)
+        .cornerRadius(18)
+        .overlay(RoundedRectangle(cornerRadius: 18)
+            .stroke(Color.acentoApp.opacity(0.35), lineWidth: 1.5))
+        .shadow(color: Color.black.opacity(0.2), radius: 12, y: 5)
         .onAppear {
-            // Iniciar el calendario en el mes de la fecha seleccionada
-            mesActual = fechaSeleccionada
+            // Abrir en el mes de la fecha actualmente seleccionada
+            mesVisible = fechaSeleccionada
         }
     }
 
-    var esMesActual: Bool {
-        cal.isDate(mesActual, equalTo: Date(), toGranularity: .month)
+    // MARK: - Botón de día individual
+    @ViewBuilder
+    func diaBoton(_ dia: Date) -> some View {
+        let esHoy    = cal.isDateInToday(dia)
+        let esSelec  = cal.isDate(dia, inSameDayAs: fechaSeleccionada)
+        let esFuturo = dia > Date()
+        let numero   = cal.component(.day, from: dia)
+
+        Button {
+            guard !esFuturo else { return }
+            withAnimation(.spring(response: 0.2)) {
+                fechaSeleccionada = dia
+            }
+            // Pequeño delay para que se vea la selección antes de cerrar
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                alSeleccionar()
+            }
+        } label: {
+            ZStack {
+                // Fondo seleccionado
+                if esSelec {
+                    Circle()
+                        .fill(Color.acentoApp)
+                        .frame(width: 36, height: 36)
+                }
+                // Borde "hoy" (solo si no está seleccionado)
+                if esHoy && !esSelec {
+                    Circle()
+                        .stroke(Color.acentoApp, lineWidth: 1.5)
+                        .frame(width: 36, height: 36)
+                }
+                Text("\(numero)")
+                    .font(esSelec ? Font.subheadline.bold() : Font.subheadline)
+                    .foregroundColor(
+                        esFuturo ? Color.textoSecundario.opacity(0.2)
+                            : esSelec ? .white
+                            : esHoy   ? Color.acentoApp
+                            : Color.textoPrincipal
+                    )
+            }
+            .frame(width: 38, height: 38)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .disabled(esFuturo)
     }
 
-    func cambiarMes(_ delta: Int) {
+    func mover(_ delta: Int) {
         withAnimation(.spring(response: 0.3)) {
-            if let nuevo = cal.date(byAdding: .month, value: delta, to: mesActual) {
-                // No permitir avanzar más allá del mes actual
-                if delta > 0 && cal.isDate(nuevo, equalTo: Date(), toGranularity: .month) {
-                    mesActual = nuevo
-                } else if delta > 0 && nuevo > Date() {
-                    return
-                } else {
-                    mesActual = nuevo
-                }
+            if let nuevo = cal.date(byAdding: .month, value: delta, to: mesVisible) {
+                // Si intenta avanzar más allá del mes actual, bloquear
+                if delta > 0 && nuevo > Date() { return }
+                mesVisible = nuevo
             }
         }
     }
