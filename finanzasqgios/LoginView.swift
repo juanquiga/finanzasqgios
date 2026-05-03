@@ -3,8 +3,6 @@ import FirebaseAuth
 import FirebaseCore
 import FirebaseDatabase
 import GoogleSignIn
-import GoogleSignInSwift
-import AuthenticationServices
 import CryptoKit
 
 struct LoginView: View {
@@ -16,16 +14,15 @@ struct LoginView: View {
     @AppStorage("saved_email")    var savedEmail      = ""
     @AppStorage("saved_pass")     var savedPass       = ""
 
-    @State private var emailInput    = ""
-    @State private var passInput     = ""
-    @State private var mostrarPass   = false        // ← nuevo
-    @State private var loading       = false
-    @State private var showReset     = false
-    @State private var resetEmail    = ""
-    @State private var alerta        = ""
-    @State private var showAlerta    = false
-    @State private var irRegistro    = false
-    @State private var nonce         = ""
+    @State private var emailInput  = ""
+    @State private var passInput   = ""
+    @State private var mostrarPass = false
+    @State private var loading     = false
+    @State private var showReset   = false
+    @State private var resetEmail  = ""
+    @State private var alerta      = ""
+    @State private var showAlerta  = false
+    @State private var irRegistro  = false
 
     let db = Database.database().reference()
 
@@ -47,16 +44,12 @@ struct LoginView: View {
                     }
                     .padding(.top, 50)
 
-                    VStack(spacing: 12) {
+                    VStack(spacing: 14) {
 
-                        // Email
                         campoTexto(t("login.correo"), texto: $emailInput,
                                    icono: "envelope.fill", secure: false)
-
-                        // Contraseña con ojo
                         campoContrasena
 
-                        // Recordar + olvidé
                         HStack {
                             Toggle(isOn: $recordarSesion) {
                                 Text(t("login.recordar"))
@@ -66,8 +59,7 @@ struct LoginView: View {
                             .toggleStyle(SwitchToggleStyle(tint: .acentoApp))
                             Spacer()
                             Button(t("login.olvide")) { showReset = true }
-                                .foregroundColor(.acentoApp)
-                                .font(Font.caption)
+                                .foregroundColor(.acentoApp).font(Font.caption)
                         }
 
                         // Botón ingresar
@@ -76,60 +68,48 @@ struct LoginView: View {
                                 if loading { ProgressView().tint(.white) }
                                 else {
                                     Text(t("login.ingresar"))
-                                        .fontWeight(.bold).tracking(1.5)
+                                        .fontWeight(.bold).tracking(1.2)
                                 }
                             }
                             .frame(maxWidth: .infinity).padding()
                             .background(Color.gradienteBoton)
                             .foregroundColor(.white).cornerRadius(14)
-                            .contentShape(Rectangle())
                         }
-                        .buttonStyle(PlainButtonStyle())
-                        .disabled(loading)
+                        .disabled(loading).buttonStyle(PlainButtonStyle())
 
                         separador()
 
                         // Google
                         Button(action: loginConGoogle) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "g.circle.fill")
-                                    .font(Font.body).foregroundColor(.red)
+                            HStack(spacing: 10) {
+                                ZStack {
+                                    Circle().fill(Color.white).frame(width: 26, height: 26)
+                                    Text("G").font(Font.system(size: 15, weight: .bold))
+                                        .foregroundColor(Color(hex: "#DB4437"))
+                                }
                                 Text(t("login.google"))
-                                    .font(Font.subheadline).fontWeight(.medium)
+                                    .font(Font.subheadline).fontWeight(.semibold)
                                     .foregroundColor(.textoPrincipal)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 10).padding(.horizontal, 16)
+                            .frame(maxWidth: .infinity).padding(.vertical, 13)
+                            .padding(.horizontal, 16)
                             .background(Color.cardApp).cornerRadius(12)
                             .overlay(RoundedRectangle(cornerRadius: 12)
-                                .stroke(Color.bordeApp, lineWidth: 1.2))
-                            .contentShape(Rectangle())
+                                .stroke(Color.bordeApp, lineWidth: 1.5))
                         }
                         .buttonStyle(PlainButtonStyle())
-
-                        // Apple
-                        SignInWithAppleButton(
-                            onRequest: { request in
-                                nonce = randomNonceString()
-                                request.requestedScopes = [.fullName, .email]
-                                request.nonce = sha256(nonce)
-                            },
-                            onCompletion: { result in manejarApple(result) }
-                        )
-                        .signInWithAppleButtonStyle(theme.temaOscuro ? .white : .black)
-                        .frame(height: 44).cornerRadius(12)
 
                         separador()
 
                         // Crear cuenta
                         Button { irRegistro = true } label: {
                             Text(t("login.crear"))
-                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity).padding()
                                 .background(Color.cardApp).foregroundColor(.acentoApp)
-                                .fontWeight(.semibold).cornerRadius(14)
+                                .cornerRadius(14)
                                 .overlay(RoundedRectangle(cornerRadius: 14)
                                     .stroke(Color.bordeApp, lineWidth: 1))
-                                .contentShape(Rectangle())
                         }
                         .buttonStyle(PlainButtonStyle())
 
@@ -143,83 +123,69 @@ struct LoginView: View {
                         .stroke(Color.bordeApp, lineWidth: 1))
                     .padding(.horizontal)
                 }
+                .padding(.bottom, 40)
             }
             .background(Color.fondoApp.ignoresSafeArea())
             .navigationDestination(isPresented: $irRegistro) { SignUpView() }
             .alert(t("login.reset.titulo"), isPresented: $showReset) {
-                TextField("email", text: $resetEmail)
+                TextField(t("login.correo"), text: $resetEmail)
                     .textInputAutocapitalization(.never)
                 Button(t("login.ingresar")) { enviarReset() }
-                Button(t("config.cancelar"), role: .cancel) {}
+                Button(t("config.cancelar"), role: .cancel) { resetEmail = "" }
             } message: { Text(t("login.reset.mensaje")) }
-            .alert("", isPresented: $showAlerta) {
+            .alert(alerta, isPresented: $showAlerta) {
                 Button("OK", role: .cancel) {}
-            } message: { Text(alerta) }
+            }
         }
         .id(loc.idioma)
     }
 
-    // MARK: - Campo contraseña con ojo
+    // MARK: - UI
     var campoContrasena: some View {
         HStack(spacing: 12) {
             Image(systemName: "lock.fill")
                 .foregroundColor(.acentoApp).frame(width: 20)
-
-            ZStack(alignment: .trailing) {
-                if mostrarPass {
-                    TextField(t("login.contrasena"), text: $passInput)
-                        .foregroundColor(.textoPrincipal)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                } else {
-                    SecureField(t("login.contrasena"), text: $passInput)
-                        .foregroundColor(.textoPrincipal)
-                }
+            if mostrarPass {
+                TextField(t("login.contrasena"), text: $passInput)
+                    .foregroundColor(.textoPrincipal)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+            } else {
+                SecureField(t("login.contrasena"), text: $passInput)
+                    .foregroundColor(.textoPrincipal)
             }
-
             Button {
                 mostrarPass.toggle()
             } label: {
                 Image(systemName: mostrarPass ? "eye.slash.fill" : "eye.fill")
-                    .foregroundColor(.textoSecundario)
-                    .frame(width: 24)
+                    .foregroundColor(.textoSecundario).frame(width: 24)
             }
             .buttonStyle(PlainButtonStyle())
         }
-        .padding()
-        .background(Color.inputFondo).cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12)
-            .stroke(Color.bordeApp, lineWidth: 1))
+        .padding().background(Color.inputFondo).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.bordeApp, lineWidth: 1))
     }
 
-    // MARK: - Campo texto genérico
     func campoTexto(_ placeholder: String, texto: Binding<String>,
                     icono: String, secure: Bool) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icono).foregroundColor(.acentoApp).frame(width: 20)
-            if secure {
-                SecureField(placeholder, text: texto).foregroundColor(.textoPrincipal)
-            } else {
-                TextField(placeholder, text: texto)
-                    .foregroundColor(.textoPrincipal)
-                    .textInputAutocapitalization(.never)
-            }
+            TextField(placeholder, text: texto)
+                .foregroundColor(.textoPrincipal)
+                .textInputAutocapitalization(.never).keyboardType(.emailAddress)
         }
-        .padding()
-        .background(Color.inputFondo).cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12)
-            .stroke(Color.bordeApp, lineWidth: 1))
+        .padding().background(Color.inputFondo).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.bordeApp, lineWidth: 1))
     }
 
     func separador() -> some View {
-        HStack {
-            Rectangle().frame(height: 1).foregroundColor(.bordeApp)
+        HStack(spacing: 8) {
+            Rectangle().frame(height: 1).foregroundColor(Color.bordeApp)
             Text("o").foregroundColor(.textoSecundario).font(Font.caption)
-            Rectangle().frame(height: 1).foregroundColor(.bordeApp)
+            Rectangle().frame(height: 1).foregroundColor(Color.bordeApp)
         }
     }
 
-    // MARK: - Login
+    // MARK: - Login email/usuario
     func login() {
         let input = emailInput.trimmingCharacters(in: .whitespacesAndNewlines)
         let pass  = passInput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -254,8 +220,11 @@ struct LoginView: View {
     func loginConEmail(_ correo: String, _ pass: String) {
         Auth.auth().signIn(withEmail: correo, password: pass) { result, error in
             DispatchQueue.main.async { loading = false }
-            if error != nil {
-                alerta = t("login.error.credenciales"); showAlerta = true; return
+            if let error {
+                let code = (error as NSError).code
+                alerta = (code == 17004 || code == 17009)
+                    ? t("login.error.credenciales") : error.localizedDescription
+                showAlerta = true; return
             }
             if recordarSesion { savedEmail = correo; savedPass = pass }
             else { savedEmail = ""; savedPass = "" }
@@ -269,51 +238,39 @@ struct LoginView: View {
         guard let clientID = FirebaseApp.app()?.options.clientID else { return }
         let config = GIDConfiguration(clientID: clientID)
         GIDSignIn.sharedInstance.configuration = config
-        guard let windowScene = UIApplication.shared.connectedScenes.first
-                as? UIWindowScene,
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let rootVC = windowScene.windows.first?.rootViewController else { return }
 
         GIDSignIn.sharedInstance.signIn(withPresenting: rootVC) { result, error in
-            guard error == nil,
-                  let user    = result?.user,
+            if let error {
+                let code = (error as NSError).code
+                if code != -5 {
+                    DispatchQueue.main.async {
+                        alerta = "Error Google: \(error.localizedDescription)"
+                        showAlerta = true
+                    }
+                }
+                return
+            }
+            guard let user    = result?.user,
                   let idToken = user.idToken?.tokenString else { return }
             let credential = GoogleAuthProvider.credential(
-                withIDToken: idToken,
-                accessToken: user.accessToken.tokenString)
+                withIDToken: idToken, accessToken: user.accessToken.tokenString)
             Auth.auth().signIn(with: credential) { authResult, error in
-                guard error == nil, let uid = authResult?.user.uid else { return }
-                manejarLoginSocial(uid: uid,
-                                   email: authResult?.user.email ?? "",
+                if let error {
+                    DispatchQueue.main.async {
+                        alerta = "Error: \(error.localizedDescription)"; showAlerta = true
+                    }
+                    return
+                }
+                guard let uid = authResult?.user.uid else { return }
+                manejarLoginSocial(uid: uid, email: authResult?.user.email ?? "",
                                    nombreSugerido: user.profile?.name ?? "")
             }
         }
     }
 
-    // MARK: - Apple
-    func manejarApple(_ result: Result<ASAuthorization, Error>) {
-        switch result {
-        case .failure:
-            alerta = "Apple Sign In cancelado"; showAlerta = true
-        case .success(let auth):
-            guard let appleCredential = auth.credential as? ASAuthorizationAppleIDCredential,
-                  let tokenData = appleCredential.identityToken,
-                  let tokenStr  = String(data: tokenData, encoding: .utf8) else { return }
-            let credential = OAuthProvider.appleCredential(
-                withIDToken: tokenStr, rawNonce: nonce,
-                fullName: appleCredential.fullName)
-            Auth.auth().signIn(with: credential) { authResult, error in
-                guard error == nil, let uid = authResult?.user.uid else { return }
-                let nombreApple = [
-                    appleCredential.fullName?.givenName,
-                    appleCredential.fullName?.familyName
-                ].compactMap { $0 }.joined(separator: " ")
-                manejarLoginSocial(uid: uid,
-                                   email: authResult?.user.email ?? "",
-                                   nombreSugerido: nombreApple)
-            }
-        }
-    }
-
+    // MARK: - Login social
     func manejarLoginSocial(uid: String, email: String, nombreSugerido: String) {
         db.child("users").child(uid).observeSingleEvent(of: .value) { snap in
             let data       = snap.value as? [String: Any]
@@ -322,26 +279,22 @@ struct LoginView: View {
             let existeEnBD = snap.exists() && !nombreBD.isEmpty
             DispatchQueue.main.async {
                 ConfigManager.shared.cargar()
-                if let scene = UIApplication.shared.connectedScenes.first
-                    as? UIWindowScene, let window = scene.windows.first {
-                    if !existeEnBD {
-                        Database.database().reference()
-                            .child("users").child(uid).setValue([
-                                "email": email, "uid": uid, "isNewUser": true
-                            ])
-                        window.rootViewController = UIHostingController(
-                            rootView: NombreUsuarioView(uid: uid, esNuevo: true))
-                    } else if nombreBD.isEmpty {
-                        window.rootViewController = UIHostingController(
-                            rootView: NombreUsuarioView(uid: uid, esNuevo: isNew))
-                    } else {
-                        let destino: AnyView = isNew
-                            ? AnyView(OnboardingView()) : AnyView(MainTabView())
-                        window.rootViewController =
-                            UIHostingController(rootView: destino)
-                    }
-                    window.makeKeyAndVisible()
+                guard let scene = UIApplication.shared.connectedScenes.first
+                        as? UIWindowScene,
+                      let window = scene.windows.first else { return }
+                if !existeEnBD {
+                    Database.database().reference().child("users").child(uid)
+                        .setValue(["email": email, "uid": uid, "isNewUser": true])
+                    window.rootViewController = UIHostingController(
+                        rootView: NombreUsuarioView(uid: uid, esNuevo: true))
+                } else if nombreBD.isEmpty {
+                    window.rootViewController = UIHostingController(
+                        rootView: NombreUsuarioView(uid: uid, esNuevo: isNew))
+                } else {
+                    window.rootViewController = UIHostingController(
+                        rootView: isNew ? AnyView(OnboardingView()) : AnyView(MainTabView()))
                 }
+                window.makeKeyAndVisible()
             }
         }
     }
@@ -351,33 +304,25 @@ struct LoginView: View {
             let data  = snap.value as? [String: Any]
             let isNew = data?["isNewUser"] as? Bool ?? false
             DispatchQueue.main.async {
-                if let scene = UIApplication.shared.connectedScenes.first
-                    as? UIWindowScene, let window = scene.windows.first {
-                    window.rootViewController = UIHostingController(
-                        rootView: isNew ? AnyView(OnboardingView()) : AnyView(MainTabView()))
-                    window.makeKeyAndVisible()
-                }
+                guard let scene = UIApplication.shared.connectedScenes.first
+                        as? UIWindowScene,
+                      let window = scene.windows.first else { return }
+                window.rootViewController = UIHostingController(
+                    rootView: isNew ? AnyView(OnboardingView()) : AnyView(MainTabView()))
+                window.makeKeyAndVisible()
             }
         }
     }
 
     func enviarReset() {
-        guard !resetEmail.isEmpty else { return }
-        Auth.auth().sendPasswordReset(withEmail: resetEmail) { error in
-            alerta = error == nil ? t("login.reset.exito") : "No se encontró ese correo"
-            showAlerta = true
+        let correo = resetEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !correo.isEmpty else { return }
+        Auth.auth().sendPasswordReset(withEmail: correo) { error in
+            DispatchQueue.main.async {
+                resetEmail = ""
+                alerta = error == nil ? t("login.reset.exito") : "Correo no encontrado"
+                showAlerta = true
+            }
         }
-    }
-
-    func randomNonceString(length: Int = 32) -> String {
-        var randomBytes = [UInt8](repeating: 0, count: length)
-        _ = SecRandomCopyBytes(kSecRandomDefault, randomBytes.count, &randomBytes)
-        return randomBytes.map { String(format: "%02x", $0) }.joined()
-    }
-
-    func sha256(_ input: String) -> String {
-        let inputData = Data(input.utf8)
-        let hash = SHA256.hash(data: inputData)
-        return hash.compactMap { String(format: "%02x", $0) }.joined()
     }
 }

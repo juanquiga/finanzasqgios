@@ -4,11 +4,13 @@ import FirebaseDatabase
 
 struct SetupCategoriasView: View {
 
-    @ObservedObject var theme   = ThemeManager.shared
+    var modoInicial: Bool = true
+
+    @ObservedObject var theme  = ThemeManager.shared
     @StateObject private var config = ConfigManager.shared
-    @State private var seccion      = "egresos"
-    @State private var guardando    = false
-    @State private var catEditando  : CategoriaItem? = nil
+    @State private var seccion    = "egresos"
+    @State private var guardando  = false
+    @State private var catEditando: CategoriaItem? = nil
     @Environment(\.dismiss) var dismiss
 
     var arbolActual: Binding<[CategoriaItem]> {
@@ -19,59 +21,54 @@ struct SetupCategoriasView: View {
         NavigationStack {
             ZStack {
                 Color.fondoApp.ignoresSafeArea()
-
                 VStack(spacing: 0) {
 
-                    // Header
-                    VStack(spacing: 6) {
+                    VStack(spacing: 4) {
                         Text("🎯 Personalización")
-                            .font(Font.title2.bold())
-                            .foregroundColor(.acentoApp)
-                        Text("Configura tus categorías y cuentas")
-                            .font(Font.caption)
-                            .foregroundColor(.textoSecundario)
+                            .font(Font.title2.bold()).foregroundColor(.acentoApp)
+                        Text("Categorías y cuentas — solo tuyas")
+                            .font(Font.caption).foregroundColor(.textoSecundario)
                     }
-                    .padding(.top, 16)
-                    .padding(.bottom, 12)
+                    .padding(.top, 16).padding(.bottom, 12)
 
-                    // Selector sección
+                    // Solo 3 tabs: Egresos, Ingresos, Cuentas
+                    // Los presupuestos se editan en "Presupuesto" desde Configuración
                     Picker("", selection: $seccion) {
                         Text("Egresos").tag("egresos")
                         Text("Ingresos").tag("ingresos")
                         Text("Cuentas").tag("cuentas")
                     }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-                    .padding(.bottom, 12)
+                    .pickerStyle(.segmented).padding(.horizontal).padding(.bottom, 4)
+
+                    // Aviso presupuesto
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle.fill").foregroundColor(Color(hex: "#2196F3"))
+                        Text("Para modificar presupuestos ve a Configuración → Presupuesto")
+                            .font(Font.caption2).foregroundColor(.textoSecundario)
+                    }
+                    .padding(.horizontal).padding(.bottom, 10)
 
                     ScrollView {
                         VStack(spacing: 12) {
-                            if seccion == "cuentas" {
-                                vistaCuentas
-                            } else {
-                                vistaCategorias
+                            switch seccion {
+                            case "cuentas": vistaCuentas
+                            default:        vistaCategorias
                             }
                         }
                         .padding()
                     }
 
-                    // Botón guardar
                     Button { guardarYSalir() } label: {
                         HStack {
-                            if guardando {
-                                ProgressView().tint(.white)
-                            } else {
+                            if guardando { ProgressView().tint(.white) }
+                            else {
                                 Image(systemName: "checkmark.circle.fill")
-                                Text("GUARDAR Y CONTINUAR")
-                                    .fontWeight(.bold)
+                                Text("GUARDAR Y CONTINUAR").fontWeight(.bold)
                             }
                         }
-                        .frame(maxWidth: .infinity)
-                        .padding()
+                        .frame(maxWidth: .infinity).padding()
                         .background(Color.gradienteBoton)
-                        .foregroundColor(.white)
-                        .cornerRadius(14)
-                        .padding()
+                        .foregroundColor(.white).cornerRadius(14).padding()
                     }
                     .disabled(guardando)
                 }
@@ -81,128 +78,89 @@ struct SetupCategoriasView: View {
         .sheet(item: $catEditando) { cat in
             EditarCategoriaView(
                 categoria: bindingParaCat(cat.id),
-                onSave: { catEditando = nil }
-            )
+                onSave: { catEditando = nil })
         }
     }
 
-    // MARK: - Vista Categorías
+    // MARK: - Vista Categorías (sin presupuesto — solo estructura)
     var vistaCategorias: some View {
         VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.shield.fill").foregroundColor(.acentoApp)
+                Text("Estas categorías son exclusivamente tuyas. Los presupuestos se configuran en la sección Presupuesto.")
+                    .font(Font.caption2).foregroundColor(.textoSecundario)
+            }
+            .padding(10).background(Color(hex: "#0D2A1A")).cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.acentoApp.opacity(0.3), lineWidth: 1))
 
-            // Agregar categoría
             Button {
-                arbolActual.wrappedValue.append(
-                    CategoriaItem(nombre: "Nueva categoría"))
+                arbolActual.wrappedValue.append(CategoriaItem(nombre: "Nueva categoría"))
             } label: {
                 HStack {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundColor(.acentoApp)
-                    Text("Agregar categoría")
-                        .foregroundColor(.acentoApp)
-                        .fontWeight(.semibold)
+                    Image(systemName: "plus.circle.fill").foregroundColor(.acentoApp)
+                    Text("Agregar categoría").foregroundColor(.acentoApp).fontWeight(.semibold)
                     Spacer()
                 }
-                .padding()
-                .background(Color.cardApp)
-                .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.acentoApp.opacity(0.5), lineWidth: 1))
+                .padding().background(Color.cardApp).cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.acentoApp.opacity(0.5), lineWidth: 1))
             }
 
             ForEach(arbolActual) { $cat in
                 VStack(alignment: .leading, spacing: 0) {
-
-                    // Fila categoría
                     HStack {
-                        Image(systemName: "folder.fill")
-                            .foregroundColor(.acentoApp)
-                            .frame(width: 24)
-                        Text(cat.nombre)
-                            .font(Font.subheadline.bold())
-                            .foregroundColor(.textoPrincipal)
+                        Image(systemName: "folder.fill").foregroundColor(.acentoApp).frame(width: 24)
+                        Text(cat.nombre).font(Font.subheadline.bold()).foregroundColor(.textoPrincipal)
                         Spacer()
-                        Button {
-                            catEditando = cat
-                        } label: {
-                            Image(systemName: "pencil.circle")
-                                .foregroundColor(Color.acentoApp.opacity(0.8))
+                        Button { catEditando = cat } label: {
+                            Image(systemName: "pencil.circle").foregroundColor(Color.acentoApp.opacity(0.8))
                         }
-                        Button {
-                            arbolActual.wrappedValue.removeAll { $0.id == cat.id }
-                        } label: {
-                            Image(systemName: "trash")
-                                .foregroundColor(Color.rojoFinanzas.opacity(0.7))
+                        Button { arbolActual.wrappedValue.removeAll { $0.id == cat.id } } label: {
+                            Image(systemName: "trash").foregroundColor(Color(hex: "#FF5252").opacity(0.7))
                         }
                     }
                     .padding()
 
-                    Divider()
-                        .background(Color.bordeApp)
-                        .padding(.leading, 44)
+                    Divider().background(Color.bordeApp).padding(.leading, 44)
 
-                    // Subcategorías
                     ForEach($cat.subcategorias) { $sub in
                         VStack(alignment: .leading, spacing: 0) {
                             HStack {
                                 Image(systemName: "chevron.right")
-                                    .font(Font.caption)
-                                    .foregroundColor(.textoSecundario)
-                                    .padding(.leading, 20)
-                                Text(sub.nombre)
-                                    .font(Font.caption)
-                                    .foregroundColor(.textoPrincipal)
+                                    .font(Font.caption).foregroundColor(.textoSecundario).padding(.leading, 20)
+                                Text(sub.nombre).font(Font.caption).foregroundColor(.textoPrincipal)
                                 Spacer()
-                                Button {
-                                    cat.subcategorias.removeAll { $0.id == sub.id }
-                                } label: {
+                                Button { cat.subcategorias.removeAll { $0.id == sub.id } } label: {
                                     Image(systemName: "minus.circle")
-                                        .foregroundColor(Color.rojoFinanzas.opacity(0.6))
-                                        .font(Font.caption)
+                                        .foregroundColor(Color(hex: "#FF5252").opacity(0.6)).font(Font.caption)
                                 }
                             }
-                            .padding(.vertical, 8)
-                            .padding(.horizontal)
+                            .padding(.vertical, 8).padding(.horizontal)
 
-                            // Subsubcategorías
                             if !sub.subsubcategorias.isEmpty {
-                                ForEach(sub.subsubcategorias, id: \.self) { ssub in
+                                ForEach(sub.subsubcategorias, id: \.id) { ssub in
                                     HStack {
                                         Image(systemName: "arrow.turn.down.right")
                                             .font(Font.caption2)
-                                            .foregroundColor(
-                                                Color.textoSecundario.opacity(0.6))
-                                            .padding(.leading, 36)
-                                        Text(ssub)
-                                            .font(Font.caption2)
-                                            .foregroundColor(
-                                                Color.textoSecundario.opacity(0.8))
+                                            .foregroundColor(Color.textoSecundario.opacity(0.6)).padding(.leading, 36)
+                                        Text(ssub.nombre).font(Font.caption2)
+                                            .foregroundColor(Color.textoSecundario.opacity(0.8))
                                         Spacer()
-                                        Button {
-                                            sub.subsubcategorias.removeAll { $0 == ssub }
-                                        } label: {
+                                        Button { sub.subsubcategorias.removeAll { $0.id == ssub.id } } label: {
                                             Image(systemName: "xmark.circle")
-                                                .foregroundColor(
-                                                    Color.rojoFinanzas.opacity(0.5))
-                                                .font(Font.caption2)
+                                                .foregroundColor(Color(hex: "#FF5252").opacity(0.5)).font(Font.caption2)
                                         }
                                     }
-                                    .padding(.vertical, 4)
-                                    .padding(.horizontal)
+                                    .padding(.vertical, 4).padding(.horizontal)
                                 }
                             }
                         }
                     }
 
-                    // Agregar subcategoría inline
                     AgregarSubView(cat: $cat)
-
                     Divider().background(Color.bordeApp)
                 }
-                .background(Color.cardApp)
-                .cornerRadius(14)
-                .overlay(RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color.bordeApp, lineWidth: 1))
+                .background(Color.cardApp).cornerRadius(14)
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.bordeApp, lineWidth: 1))
             }
         }
     }
@@ -210,27 +168,27 @@ struct SetupCategoriasView: View {
     // MARK: - Vista Cuentas
     var vistaCuentas: some View {
         VStack(spacing: 10) {
+            HStack(spacing: 8) {
+                Image(systemName: "lock.shield.fill").foregroundColor(.acentoApp)
+                Text("Tus cuentas son privadas. Solo tú las ves.")
+                    .font(Font.caption2).foregroundColor(.textoSecundario)
+            }
+            .padding(10).background(Color(hex: "#0D2A1A")).cornerRadius(10)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.acentoApp.opacity(0.3), lineWidth: 1))
+
             AgregarCuentaView(cuentas: $config.cuentas)
 
             ForEach($config.cuentas, id: \.self) { $cta in
                 HStack(spacing: 12) {
-                    Image(systemName: "creditcard.fill")
-                        .foregroundColor(.acentoApp)
-                    TextField("Cuenta", text: $cta)
-                        .foregroundColor(.textoPrincipal)
+                    Image(systemName: "creditcard.fill").foregroundColor(.acentoApp)
+                    TextField("Cuenta", text: $cta).foregroundColor(.textoPrincipal)
                     Spacer()
-                    Button {
-                        config.cuentas.removeAll { $0 == cta }
-                    } label: {
-                        Image(systemName: "trash")
-                            .foregroundColor(Color.rojoFinanzas.opacity(0.7))
+                    Button { config.cuentas.removeAll { $0 == cta } } label: {
+                        Image(systemName: "trash").foregroundColor(Color(hex: "#FF5252").opacity(0.7))
                     }
                 }
-                .padding()
-                .background(Color.cardApp)
-                .cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.bordeApp, lineWidth: 1))
+                .padding().background(Color.cardApp).cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.bordeApp, lineWidth: 1))
             }
         }
     }
@@ -238,13 +196,9 @@ struct SetupCategoriasView: View {
     // MARK: - Helpers
     func bindingParaCat(_ catId: String) -> Binding<CategoriaItem> {
         Binding(
-            get: {
-                arbolActual.wrappedValue.first { $0.id == catId }
-                    ?? CategoriaItem()
-            },
+            get: { arbolActual.wrappedValue.first { $0.id == catId } ?? CategoriaItem() },
             set: { nuevo in
-                if let idx = arbolActual.wrappedValue
-                    .firstIndex(where: { $0.id == catId }) {
+                if let idx = arbolActual.wrappedValue.firstIndex(where: { $0.id == catId }) {
                     arbolActual.wrappedValue[idx] = nuevo
                 }
             }
@@ -254,26 +208,29 @@ struct SetupCategoriasView: View {
     func guardarYSalir() {
         guardando = true
         config.guardar()
-        if let uid = Auth.auth().currentUser?.uid {
-            Database.database().reference()
-                .child("users").child(uid)
-                .child("isNewUser").setValue(false)
+        if modoInicial {
+            if let uid = Auth.auth().currentUser?.uid {
+                Database.database().reference()
+                    .child("users").child(uid).child("isNewUser").setValue(false)
+            }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             guardando = false
-            if let scene = UIApplication.shared.connectedScenes.first
-                as? UIWindowScene, let window = scene.windows.first {
-                window.rootViewController =
-                    UIHostingController(rootView: MainTabView())
-                window.makeKeyAndVisible()
+            if modoInicial {
+                if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let window = scene.windows.first {
+                    window.rootViewController = UIHostingController(rootView: MainTabView())
+                    window.makeKeyAndVisible()
+                }
+            } else {
+                dismiss()
             }
         }
     }
 }
 
-// MARK: - Agregar subcategoría inline
+// MARK: - AgregarSubView
 struct AgregarSubView: View {
-
     @Binding var cat: CategoriaItem
     @State private var nuevaSub  = ""
     @State private var nuevoSsub = ""
@@ -282,126 +239,90 @@ struct AgregarSubView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-
-            Button {
-                withAnimation { expandido.toggle() }
-            } label: {
+            Button { withAnimation { expandido.toggle() } } label: {
                 HStack {
-                    Image(systemName: "plus.circle")
-                        .foregroundColor(.acentoApp)
-                        .font(Font.caption)
-                    Text("Agregar subcategoría")
-                        .font(Font.caption)
-                        .foregroundColor(.acentoApp)
+                    Image(systemName: "plus.circle").foregroundColor(.acentoApp).font(Font.caption)
+                    Text("Agregar subcategoría").font(Font.caption).foregroundColor(.acentoApp)
                     Spacer()
-                    Image(systemName: expandido
-                          ? "chevron.up" : "chevron.down")
-                        .font(Font.caption2)
-                        .foregroundColor(.textoSecundario)
+                    Image(systemName: expandido ? "chevron.up" : "chevron.down")
+                        .font(Font.caption2).foregroundColor(.textoSecundario)
                 }
-                .padding(.horizontal)
-                .padding(.vertical, 8)
+                .padding(.horizontal).padding(.vertical, 8)
             }
 
             if expandido {
                 VStack(spacing: 8) {
-
                     // Nueva subcategoría
                     HStack {
                         TextField("Nombre subcategoría", text: $nuevaSub)
-                            .font(Font.caption)
-                            .foregroundColor(.textoPrincipal)
+                            .font(Font.caption).foregroundColor(.textoPrincipal)
                         Button("＋") {
                             let s = nuevaSub.trimmingCharacters(in: .whitespaces)
                             guard !s.isEmpty else { return }
                             cat.subcategorias.append(SubcategoriaItem(nombre: s))
                             nuevaSub = ""
                         }
-                        .foregroundColor(.acentoApp)
-                        .fontWeight(.bold)
+                        .foregroundColor(.acentoApp).fontWeight(.bold)
                     }
-                    .padding(10)
-                    .background(Color.inputFondo)
-                    .cornerRadius(10)
+                    .padding(10).background(Color.inputFondo).cornerRadius(10)
 
-                    // Picker para subsubcategoría
+                    // Subsubcategoría
                     if !cat.subcategorias.isEmpty {
                         Picker("Subcategoría", selection: $subSelec) {
                             Text("Para subcategoría...").tag("")
-                            ForEach(cat.subcategorias) { sub in
-                                Text(sub.nombre).tag(sub.id)
-                            }
+                            ForEach(cat.subcategorias) { sub in Text(sub.nombre).tag(sub.id) }
                         }
-                        .pickerStyle(.menu)
-                        .padding(8)
-                        .background(Color.inputFondo)
-                        .cornerRadius(10)
-                        .accentColor(.acentoApp)
+                        .pickerStyle(.menu).padding(8).background(Color.inputFondo)
+                        .cornerRadius(10).accentColor(.acentoApp)
 
                         if !subSelec.isEmpty {
                             HStack {
                                 TextField("Subsubcategoría", text: $nuevoSsub)
-                                    .font(Font.caption)
-                                    .foregroundColor(.textoPrincipal)
+                                    .font(Font.caption).foregroundColor(.textoPrincipal)
                                 Button("＋") {
-                                    let s = nuevoSsub
-                                        .trimmingCharacters(in: .whitespaces)
+                                    let s = nuevoSsub.trimmingCharacters(in: .whitespaces)
                                     guard !s.isEmpty else { return }
-                                    if let idx = cat.subcategorias
-                                        .firstIndex(where: { $0.id == subSelec }) {
-                                        cat.subcategorias[idx]
-                                            .subsubcategorias.append(s)
+                                    if let idx = cat.subcategorias.firstIndex(where: { $0.id == subSelec }) {
+                                        cat.subcategorias[idx].subsubcategorias
+                                            .append(SubsubcategoriaItem(nombre: s))
                                     }
                                     nuevoSsub = ""
                                 }
-                                .foregroundColor(.acentoApp)
-                                .fontWeight(.bold)
+                                .foregroundColor(.acentoApp).fontWeight(.bold)
                             }
-                            .padding(10)
-                            .background(Color.inputFondo)
-                            .cornerRadius(10)
+                            .padding(10).background(Color.inputFondo).cornerRadius(10)
                         }
                     }
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 8)
+                .padding(.horizontal).padding(.bottom, 8)
             }
         }
     }
 }
 
-// MARK: - Agregar cuenta
+// MARK: - AgregarCuentaView
 struct AgregarCuentaView: View {
-
     @Binding var cuentas: [String]
     @State private var nuevaCta = ""
 
     var body: some View {
         HStack {
-            Image(systemName: "creditcard.fill")
-                .foregroundColor(.acentoApp)
-            TextField("Nueva cuenta (ej: Nu, Nequi)", text: $nuevaCta)
-                .foregroundColor(.textoPrincipal)
+            Image(systemName: "creditcard.fill").foregroundColor(.acentoApp)
+            TextField("Nueva cuenta (ej: Nu, Nequi)", text: $nuevaCta).foregroundColor(.textoPrincipal)
             Button("＋") {
                 let c = nuevaCta.trimmingCharacters(in: .whitespaces)
                 guard !c.isEmpty else { return }
-                cuentas.append(c)
-                nuevaCta = ""
+                cuentas.append(c); nuevaCta = ""
             }
-            .foregroundColor(.acentoApp)
-            .fontWeight(.bold)
+            .foregroundColor(.acentoApp).fontWeight(.bold)
         }
-        .padding()
-        .background(Color.cardApp)
-        .cornerRadius(12)
-        .overlay(RoundedRectangle(cornerRadius: 12)
-            .stroke(Color.acentoApp.opacity(0.5), lineWidth: 1))
+        .padding().background(Color.cardApp).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.acentoApp.opacity(0.5), lineWidth: 1))
     }
 }
 
-// MARK: - Editar categoría (sheet)
+// MARK: - EditarCategoriaView (solo estructura, SIN campos de presupuesto)
 struct EditarCategoriaView: View {
-
     @ObservedObject var theme = ThemeManager.shared
     @Binding var categoria: CategoriaItem
     var onSave: () -> Void
@@ -411,102 +332,83 @@ struct EditarCategoriaView: View {
         NavigationStack {
             ZStack {
                 Color.fondoApp.ignoresSafeArea()
-
                 ScrollView {
                     VStack(spacing: 16) {
 
-                        // Nombre categoría
+                        // Nombre
                         VStack(alignment: .leading, spacing: 6) {
                             Text("NOMBRE CATEGORÍA")
-                                .font(Font.caption.bold())
-                                .foregroundColor(.acentoApp)
-                                .kerning(1.2)
+                                .font(Font.caption.bold()).foregroundColor(.acentoApp).kerning(1.2)
                             TextField("Nombre", text: $categoria.nombre)
-                                .foregroundColor(.textoPrincipal)
-                                .padding()
-                                .background(Color.inputFondo)
-                                .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.bordeApp, lineWidth: 1))
+                                .foregroundColor(.textoPrincipal).padding()
+                                .background(Color.inputFondo).cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.bordeApp, lineWidth: 1))
                         }
+
+                        // Aviso presupuesto
+                        HStack(spacing: 8) {
+                            Image(systemName: "info.circle.fill").foregroundColor(Color(hex: "#2196F3"))
+                            Text("Para modificar presupuestos de esta categoría ve a Configuración → Presupuesto")
+                                .font(Font.caption2).foregroundColor(.textoSecundario)
+                        }
+                        .padding(10).background(Color(hex: "#0D1A2A")).cornerRadius(10)
+                        .overlay(RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color(hex: "#2196F3").opacity(0.3), lineWidth: 1))
 
                         Divider().background(Color.bordeApp)
 
-                        // Subcategorías
-                        Text("SUBCATEGORÍAS")
-                            .font(Font.caption.bold())
-                            .foregroundColor(.acentoApp)
-                            .kerning(1.2)
+                        Text("SUBCATEGORÍAS").font(Font.caption.bold())
+                            .foregroundColor(.acentoApp).kerning(1.2)
                             .frame(maxWidth: .infinity, alignment: .leading)
 
                         ForEach($categoria.subcategorias) { $sub in
                             VStack(alignment: .leading, spacing: 8) {
-
                                 HStack {
                                     TextField("Subcategoría", text: $sub.nombre)
-                                        .font(Font.subheadline.bold())
-                                        .foregroundColor(.textoPrincipal)
+                                        .font(Font.subheadline.bold()).foregroundColor(.textoPrincipal)
                                     Button {
-                                        categoria.subcategorias
-                                            .removeAll { $0.id == sub.id }
+                                        categoria.subcategorias.removeAll { $0.id == sub.id }
                                     } label: {
                                         Image(systemName: "trash")
-                                            .foregroundColor(
-                                                Color.rojoFinanzas.opacity(0.7))
+                                            .foregroundColor(Color(hex: "#FF5252").opacity(0.7))
                                     }
                                 }
-                                .padding()
-                                .background(Color.cardApp)
-                                .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.bordeApp, lineWidth: 1))
+                                .padding().background(Color.cardApp).cornerRadius(12)
+                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.bordeApp, lineWidth: 1))
 
-                                // Subsubcategorías editables
                                 VStack(spacing: 4) {
-                                    ForEach($sub.subsubcategorias, id: \.self) { $ssub in
+                                    ForEach($sub.subsubcategorias) { $ssub in
                                         HStack {
                                             Image(systemName: "arrow.turn.down.right")
-                                                .font(Font.caption2)
-                                                .foregroundColor(.textoSecundario)
-                                            TextField("Subsubcategoría", text: $ssub)
-                                                .font(Font.caption)
-                                                .foregroundColor(.textoPrincipal)
+                                                .font(Font.caption2).foregroundColor(.textoSecundario)
+                                            TextField("Nombre", text: $ssub.nombre)
+                                                .font(Font.caption).foregroundColor(.textoPrincipal)
+                                            Spacer()
                                             Button {
-                                                sub.subsubcategorias
-                                                    .removeAll { $0 == ssub }
+                                                sub.subsubcategorias.removeAll { $0.id == ssub.id }
                                             } label: {
                                                 Image(systemName: "xmark.circle")
-                                                    .foregroundColor(
-                                                        Color.rojoFinanzas.opacity(0.5))
+                                                    .foregroundColor(Color(hex: "#FF5252").opacity(0.5))
                                                     .font(Font.caption)
                                             }
                                         }
-                                        .padding(8)
-                                        .background(Color.inputFondo)
-                                        .cornerRadius(10)
+                                        .padding(8).background(Color.inputFondo).cornerRadius(10)
                                     }
-
                                     AgregarSubsubView(sub: $sub)
                                 }
                                 .padding(.leading, 16)
                             }
                         }
 
-                        // Agregar nueva subcategoría
                         Button {
-                            categoria.subcategorias.append(
-                                SubcategoriaItem(nombre: "Nueva"))
+                            categoria.subcategorias.append(SubcategoriaItem(nombre: "Nueva"))
                         } label: {
                             HStack {
                                 Image(systemName: "plus.circle.fill")
                                 Text("Agregar subcategoría")
                             }
-                            .font(Font.caption.bold())
-                            .foregroundColor(.acentoApp)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.cardApp)
-                            .cornerRadius(12)
+                            .font(Font.caption.bold()).foregroundColor(.acentoApp)
+                            .frame(maxWidth: .infinity).padding().background(Color.cardApp).cornerRadius(12)
                             .overlay(RoundedRectangle(cornerRadius: 12)
                                 .stroke(Color.acentoApp.opacity(0.5), lineWidth: 1))
                         }
@@ -519,12 +421,10 @@ struct EditarCategoriaView: View {
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Listo") { onSave(); dismiss() }
-                        .foregroundColor(.acentoApp)
-                        .fontWeight(.bold)
+                        .foregroundColor(.acentoApp).fontWeight(.bold)
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") { dismiss() }
-                        .foregroundColor(.textoSecundario)
+                    Button("Cancelar") { dismiss() }.foregroundColor(.textoSecundario)
                 }
             }
         }
@@ -532,28 +432,23 @@ struct EditarCategoriaView: View {
     }
 }
 
-// MARK: - Agregar subsubcategoría
+// MARK: - AgregarSubsubView
 struct AgregarSubsubView: View {
-
     @Binding var sub: SubcategoriaItem
     @State private var texto = ""
 
     var body: some View {
         HStack {
             TextField("Nueva subsubcategoría", text: $texto)
-                .font(Font.caption)
-                .foregroundColor(.textoPrincipal)
+                .font(Font.caption).foregroundColor(.textoPrincipal)
             Button("＋") {
                 let s = texto.trimmingCharacters(in: .whitespaces)
                 guard !s.isEmpty else { return }
-                sub.subsubcategorias.append(s)
+                sub.subsubcategorias.append(SubsubcategoriaItem(nombre: s))
                 texto = ""
             }
-            .foregroundColor(.acentoApp)
-            .fontWeight(.bold)
+            .foregroundColor(.acentoApp).fontWeight(.bold)
         }
-        .padding(8)
-        .background(Color.inputFondo)
-        .cornerRadius(10)
+        .padding(8).background(Color.inputFondo).cornerRadius(10)
     }
 }

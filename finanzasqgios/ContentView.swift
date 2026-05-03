@@ -7,7 +7,6 @@ struct ContentView: View {
     @ObservedObject var theme = ThemeManager.shared
     @AppStorage("recordarSesion") var recordarSesion = false
     @AppStorage("usarFaceID")     var usarFaceID     = false
-    @AppStorage("saved_email")    var savedEmail      = ""
 
     @State private var autenticado = false
     @State private var cargando    = true
@@ -18,9 +17,9 @@ struct ContentView: View {
                 ZStack {
                     Color.fondoApp.ignoresSafeArea()
                     VStack(spacing: 16) {
-                        Text("💰").font(.system(size: 60))
+                        Text("💰").font(Font.system(size: 60))
                         Text("FinanzasQG")
-                            .font(.title.bold()).foregroundColor(.acentoApp)
+                            .font(Font.title.bold()).foregroundColor(.acentoApp)
                         ProgressView().tint(.acentoApp)
                     }
                 }
@@ -36,10 +35,14 @@ struct ContentView: View {
 
     func verificarSesion() {
         guard Auth.auth().currentUser != nil, recordarSesion else {
-            if !recordarSesion { try? Auth.auth().signOut() }
+            if !recordarSesion {
+                ConfigManager.shared.resetearSesion()
+                try? Auth.auth().signOut()
+            }
             cargando = false; return
         }
-        let ctx = LAContext()
+
+        let ctx     = LAContext()
         let soporta = ctx.canEvaluatePolicy(
             .deviceOwnerAuthenticationWithBiometrics, error: nil)
 
@@ -49,12 +52,20 @@ struct ContentView: View {
                 localizedReason: "Accede a FinanzasQG"
             ) { success, _ in
                 DispatchQueue.main.async {
-                    cargando = false; autenticado = success
-                    if !success { try? Auth.auth().signOut() }
+                    cargando    = false
+                    autenticado = success
+                    if success {
+                        ConfigManager.shared.cargar()
+                    } else {
+                        ConfigManager.shared.resetearSesion()
+                        try? Auth.auth().signOut()
+                    }
                 }
             }
         } else {
-            cargando = false; autenticado = true
+            cargando    = false
+            autenticado = true
+            ConfigManager.shared.cargar()
         }
     }
 }

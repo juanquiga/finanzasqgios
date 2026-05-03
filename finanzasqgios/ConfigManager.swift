@@ -3,154 +3,163 @@ import Combine
 import FirebaseDatabase
 import FirebaseAuth
 
-// Estructura jerárquica: Categoria → Subcategoria → [SubsubCategoria]
-struct CategoriaItem: Identifiable, Codable {
-    var id: String = UUID().uuidString
-    var nombre: String = ""
-    var subcategorias: [SubcategoriaItem] = []
+struct SubsubcategoriaItem: Identifiable, Codable {
+    var id          : String = UUID().uuidString
+    var nombre      : String = ""
+    var presupuesto : Double = 0
+    init(nombre: String = "", presupuesto: Double = 0) {
+        self.nombre = nombre; self.presupuesto = presupuesto
+    }
 }
 
 struct SubcategoriaItem: Identifiable, Codable {
-    var id: String = UUID().uuidString
-    var nombre: String = ""
-    var subsubcategorias: [String] = []
+    var id               : String                   = UUID().uuidString
+    var nombre           : String                   = ""
+    var presupuesto      : Double                   = 0
+    var subsubcategorias : [SubsubcategoriaItem]    = []
+    init(nombre: String = "", presupuesto: Double = 0) {
+        self.nombre = nombre; self.presupuesto = presupuesto
+    }
+    // Suma automática de subsubcategorías
+    var presupuestoTotal: Double {
+        let sumaSub = subsubcategorias.reduce(0) { $0 + $1.presupuesto }
+        return sumaSub > 0 ? sumaSub : presupuesto
+    }
+}
+
+struct CategoriaItem: Identifiable, Codable {
+    var id            : String             = UUID().uuidString
+    var nombre        : String             = ""
+    var subcategorias : [SubcategoriaItem] = []
+    var presupuesto   : Double             = 0
+    init(nombre: String = "", presupuesto: Double = 0) {
+        self.nombre = nombre; self.presupuesto = presupuesto
+    }
+    // Suma automática de subcategorías
+    var presupuestoTotal: Double {
+        let sumaSubs = subcategorias.reduce(0) { $0 + $1.presupuestoTotal }
+        return sumaSubs > 0 ? sumaSubs : presupuesto
+    }
 }
 
 class ConfigManager: ObservableObject {
-
     static let shared = ConfigManager()
 
-    @Published var egresosTree  : [CategoriaItem] = []
-    @Published var ingresosTree : [CategoriaItem] = []
-    @Published var cuentas      : [String] = []
+    @Published var egresosTree      : [CategoriaItem] = []
+    @Published var ingresosTree     : [CategoriaItem] = []
+    @Published var cuentas          : [String]        = []
+    @Published var presupuestoMaxCOP: Double          = 0
+    @Published var presupuestoMaxUSD: Double          = 0
 
-    private var handle: DatabaseHandle?
-    private var ref: DatabaseReference?
+    private var handle   : DatabaseHandle?
+    private var ref      : DatabaseReference?
+    private var uidActual: String = ""
 
-    private init() {
-        // Defaults
+    private init() { aplicarDefaults() }
+
+    private func aplicarDefaults() {
         egresosTree = [
-            CategoriaItem(nombre: "Comida", subcategorias: [
-                SubcategoriaItem(nombre: "Almuerzo",   subsubcategorias: ["Restaurante", "Casa", "Delivery"]),
-                SubcategoriaItem(nombre: "Mercado",    subsubcategorias: ["Supermercado", "Tienda", "Plaza"]),
-                SubcategoriaItem(nombre: "Cafetería",  subsubcategorias: ["Café", "Snack"])
-            ]),
-            CategoriaItem(nombre: "Casa", subcategorias: [
-                SubcategoriaItem(nombre: "Servicios",  subsubcategorias: ["Luz", "Agua", "Gas", "Internet"]),
-                SubcategoriaItem(nombre: "Arriendo",   subsubcategorias: []),
-                SubcategoriaItem(nombre: "Mercado",    subsubcategorias: [])
-            ]),
-            CategoriaItem(nombre: "Transporte", subcategorias: [
-                SubcategoriaItem(nombre: "Gasolina",   subsubcategorias: ["Carro", "Moto"]),
-                SubcategoriaItem(nombre: "Transporte público", subsubcategorias: ["Transmilenio", "Bus", "Metro"]),
-                SubcategoriaItem(nombre: "Taxi/Uber",  subsubcategorias: [])
-            ]),
-            CategoriaItem(nombre: "Salud", subcategorias: [
-                SubcategoriaItem(nombre: "Medicamentos", subsubcategorias: []),
-                SubcategoriaItem(nombre: "Consulta",   subsubcategorias: ["Médico", "Odontólogo", "Especialista"]),
-                SubcategoriaItem(nombre: "Gym",        subsubcategorias: [])
-            ]),
-            CategoriaItem(nombre: "Familia", subcategorias: [
-                SubcategoriaItem(nombre: "Mesada",     subsubcategorias: []),
-                SubcategoriaItem(nombre: "Salidas",    subsubcategorias: ["Restaurante", "Cine", "Parque"]),
-                SubcategoriaItem(nombre: "Mascotas",   subsubcategorias: ["Veterinario", "Comida", "Accesorios"])
-            ]),
-            CategoriaItem(nombre: "Ocio", subcategorias: [
-                SubcategoriaItem(nombre: "Entretenimiento", subsubcategorias: ["Streaming", "Juegos", "Música"]),
-                SubcategoriaItem(nombre: "Viajes",     subsubcategorias: ["Tiquetes", "Hotel", "Comida"]),
-                SubcategoriaItem(nombre: "Ropa",       subsubcategorias: [])
-            ])
+            CategoriaItem(nombre: "Comida"),
+            CategoriaItem(nombre: "Casa"),
+            CategoriaItem(nombre: "Transporte"),
+            CategoriaItem(nombre: "Salud"),
+            CategoriaItem(nombre: "Familia"),
+            CategoriaItem(nombre: "Ocio")
         ]
         ingresosTree = [
-            CategoriaItem(nombre: "Salario", subcategorias: [
-                SubcategoriaItem(nombre: "Nómina",     subsubcategorias: ["Quincenal", "Mensual"]),
-                SubcategoriaItem(nombre: "Prima",      subsubcategorias: [])
-            ]),
-            CategoriaItem(nombre: "Negocio", subcategorias: [
-                SubcategoriaItem(nombre: "Ventas",     subsubcategorias: []),
-                SubcategoriaItem(nombre: "Servicios",  subsubcategorias: [])
-            ]),
-            CategoriaItem(nombre: "Inmuebles", subcategorias: [
-                SubcategoriaItem(nombre: "Arriendo",   subsubcategorias: []),
-                SubcategoriaItem(nombre: "Venta",      subsubcategorias: [])
-            ]),
-            CategoriaItem(nombre: "Otros", subcategorias: [
-                SubcategoriaItem(nombre: "Regalo",     subsubcategorias: []),
-                SubcategoriaItem(nombre: "Premio",     subsubcategorias: []),
-                SubcategoriaItem(nombre: "Préstamo",   subsubcategorias: [])
-            ])
+            CategoriaItem(nombre: "Salario"),
+            CategoriaItem(nombre: "Negocio"),
+            CategoriaItem(nombre: "Inmuebles"),
+            CategoriaItem(nombre: "Otros")
         ]
-        cuentas = ["Bancolombia", "Nu", "Nequi", "Efectivo", "Tarjeta crédito"]
+        cuentas           = ["Bancolombia","Nu","Nequi","Efectivo","Tarjeta crédito"]
+        presupuestoMaxCOP = 0
+        presupuestoMaxUSD = 0
     }
 
     func cargar() {
         guard let uid = Auth.auth().currentUser?.uid else { return }
+        if uid != uidActual { detener(); aplicarDefaults(); uidActual = uid }
         ref = Database.database().reference().child("configuracion").child(uid)
         handle = ref?.observe(.value) { [weak self] snap in
-            guard let self = self else { return }
-            if let data = snap.value as? [String: Any] {
-                if let eg = data["egresos"]  as? [[String: Any]] {
-                    self.egresosTree  = self.parseTree(eg)
-                }
-                if let ig = data["ingresos"] as? [[String: Any]] {
-                    self.ingresosTree = self.parseTree(ig)
-                }
-                if let ct = data["cuentas"]  as? [String] {
-                    self.cuentas = ct
-                }
+            guard let self else { return }
+            DispatchQueue.main.async {
+                guard let data = snap.value as? [String: Any] else { return }
+                if let eg = data["egresos"]           as? [[String: Any]] { self.egresosTree  = self.parseTree(eg) }
+                if let ig = data["ingresos"]          as? [[String: Any]] { self.ingresosTree = self.parseTree(ig) }
+                if let ct = data["cuentas"]           as? [String]        { self.cuentas      = ct }
+                if let pc = data["presupuestoMaxCOP"] as? Double { self.presupuestoMaxCOP = pc }
+                else if let pc = data["presupuestoMaxCOP"] as? Int { self.presupuestoMaxCOP = Double(pc) }
+                if let pu = data["presupuestoMaxUSD"] as? Double { self.presupuestoMaxUSD = pu }
+                else if let pu = data["presupuestoMaxUSD"] as? Int { self.presupuestoMaxUSD = Double(pu) }
             }
         }
     }
 
     func guardar() {
-        guard let uid = Auth.auth().currentUser?.uid else { return }
-        Database.database().reference()
-            .child("configuracion").child(uid)
-            .setValue([
-                "egresos":  serializeTree(egresosTree),
-                "ingresos": serializeTree(ingresosTree),
-                "cuentas":  cuentas
-            ])
+        guard let uid = Auth.auth().currentUser?.uid, uid == uidActual else { return }
+        Database.database().reference().child("configuracion").child(uid).setValue([
+            "egresos"          : serializeTree(egresosTree),
+            "ingresos"         : serializeTree(ingresosTree),
+            "cuentas"          : cuentas,
+            "presupuestoMaxCOP": presupuestoMaxCOP,
+            "presupuestoMaxUSD": presupuestoMaxUSD
+        ])
     }
 
     func detener() {
         if let h = handle { ref?.removeObserver(withHandle: h) }
+        handle = nil; ref = nil
     }
 
-    // Helpers de serialización
+    func resetearSesion() {
+        detener(); uidActual = ""
+        egresosTree = []; ingresosTree = []; cuentas = []
+        presupuestoMaxCOP = 0; presupuestoMaxUSD = 0
+    }
+
     private func serializeTree(_ items: [CategoriaItem]) -> [[String: Any]] {
-        items.map { cat in
-            [
-                "id": cat.id,
-                "nombre": cat.nombre,
-                "subcategorias": cat.subcategorias.map { sub in
-                    [
-                        "id": sub.id,
-                        "nombre": sub.nombre,
-                        "subsubcategorias": sub.subsubcategorias
-                    ] as [String: Any]
-                }
-            ] as [String: Any]
-        }
+        items.map { cat in [
+            "id": cat.id, "nombre": cat.nombre, "presupuesto": cat.presupuesto,
+            "subcategorias": cat.subcategorias.map { sub in [
+                "id": sub.id, "nombre": sub.nombre, "presupuesto": sub.presupuesto,
+                "subsubcategorias": sub.subsubcategorias.map { ssub in [
+                    "id": ssub.id, "nombre": ssub.nombre, "presupuesto": ssub.presupuesto
+                ] as [String: Any] }
+            ] as [String: Any] }
+        ] as [String: Any] }
     }
 
     private func parseTree(_ arr: [[String: Any]]) -> [CategoriaItem] {
         arr.compactMap { d in
             guard let nombre = d["nombre"] as? String else { return nil }
-            let subs = (d["subcategorias"] as? [[String: Any]] ?? []).compactMap { s -> SubcategoriaItem? in
-                guard let sNombre = s["nombre"] as? String else { return nil }
-                let subsubs = s["subsubcategorias"] as? [String] ?? []
-                return SubcategoriaItem(
-                    id: s["id"] as? String ?? UUID().uuidString,
-                    nombre: sNombre,
-                    subsubcategorias: subsubs
-                )
+            var cat = CategoriaItem(nombre: nombre)
+            cat.id = d["id"] as? String ?? UUID().uuidString
+            if let p = d["presupuesto"] as? Double { cat.presupuesto = p }
+            else if let p = d["presupuesto"] as? Int { cat.presupuesto = Double(p) }
+            cat.subcategorias = (d["subcategorias"] as? [[String: Any]] ?? []).compactMap { s in
+                guard let sn = s["nombre"] as? String else { return nil }
+                var sub = SubcategoriaItem(nombre: sn)
+                sub.id = s["id"] as? String ?? UUID().uuidString
+                if let p = s["presupuesto"] as? Double { sub.presupuesto = p }
+                else if let p = s["presupuesto"] as? Int { sub.presupuesto = Double(p) }
+                // Parse subsubcategorias como objetos (nuevo) o como strings (legado)
+                if let ssubs = s["subsubcategorias"] as? [[String: Any]] {
+                    sub.subsubcategorias = ssubs.compactMap { ss in
+                        guard let ssn = ss["nombre"] as? String else { return nil }
+                        var ssub = SubsubcategoriaItem(nombre: ssn)
+                        ssub.id = ss["id"] as? String ?? UUID().uuidString
+                        if let p = ss["presupuesto"] as? Double { ssub.presupuesto = p }
+                        else if let p = ss["presupuesto"] as? Int { ssub.presupuesto = Double(p) }
+                        return ssub
+                    }
+                } else if let ssubs = s["subsubcategorias"] as? [String] {
+                    // Compatibilidad con formato legacy (strings)
+                    sub.subsubcategorias = ssubs.map { SubsubcategoriaItem(nombre: $0) }
+                }
+                return sub
             }
-            return CategoriaItem(
-                id: d["id"] as? String ?? UUID().uuidString,
-                nombre: nombre,
-                subcategorias: subs
-            )
+            return cat
         }
     }
 }
