@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		208309F92FA9899E0057AAE6 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 208309F82FA9899E0057AAE6 /* RevenueCat */; };
 		20B646142F990FCA000D3F9F /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 20B646132F990FCA000D3F9F /* GoogleSignIn */; };
 		20B646162F990FCA000D3F9F /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 20B646152F990FCA000D3F9F /* GoogleSignInSwift */; };
 		20E8039C2F95E1F200FDA583 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 20E8039B2F95E1F200FDA583 /* FirebaseAuth */; };
@@ -22,6 +23,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
+				Untitled.swift,
 			);
 			target = 20E803892F95DF4D00FDA583 /* finanzasqgios */;
 		};
@@ -45,6 +47,7 @@
 			files = (
 				20E8039E2F95E1F200FDA583 /* FirebaseDatabase in Frameworks */,
 				20E8039C2F95E1F200FDA583 /* FirebaseAuth in Frameworks */,
+				208309F92FA9899E0057AAE6 /* RevenueCat in Frameworks */,
 				20B646142F990FCA000D3F9F /* GoogleSignIn in Frameworks */,
 				20B646162F990FCA000D3F9F /* GoogleSignInSwift in Frameworks */,
 			);
@@ -93,6 +96,7 @@
 				20E8039D2F95E1F200FDA583 /* FirebaseDatabase */,
 				20B646132F990FCA000D3F9F /* GoogleSignIn */,
 				20B646152F990FCA000D3F9F /* GoogleSignInSwift */,
+				208309F82FA9899E0057AAE6 /* RevenueCat */,
 			);
 			productName = finanzasqgios;
 			productReference = 20E8038A2F95DF4D00FDA583 /* finanzasqgios.app */;
@@ -126,6 +130,7 @@
 			packageReferences = (
 				20E8039A2F95E1F200FDA583 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				20B646122F990FCA000D3F9F /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */,
+				208309F72FA9899E0057AAE6 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 20E8038B2F95DF4D00FDA583 /* Products */;
@@ -396,6 +401,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		208309F72FA9899E0057AAE6 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/RevenueCat/purchases-ios-spm.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.70.0;
+			};
+		};
 		20B646122F990FCA000D3F9F /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/google/GoogleSignIn-iOS";
@@ -415,6 +428,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		208309F82FA9899E0057AAE6 /* RevenueCat */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 208309F72FA9899E0057AAE6 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */;
+			productName = RevenueCat;
+		};
 		20B646132F990FCA000D3F9F /* GoogleSignIn */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 20B646122F990FCA000D3F9F /* XCRemoteSwiftPackageReference "GoogleSignIn-iOS" */;

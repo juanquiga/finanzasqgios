@@ -37,14 +37,14 @@ struct ContentView: View {
         guard Auth.auth().currentUser != nil, recordarSesion else {
             if !recordarSesion {
                 ConfigManager.shared.resetearSesion()
+                PremiumManager.shared.resetear()
                 try? Auth.auth().signOut()
             }
             cargando = false; return
         }
 
         let ctx     = LAContext()
-        let soporta = ctx.canEvaluatePolicy(
-            .deviceOwnerAuthenticationWithBiometrics, error: nil)
+        let soporta = ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
 
         if usarFaceID && soporta {
             ctx.evaluatePolicy(
@@ -56,8 +56,10 @@ struct ContentView: View {
                     autenticado = success
                     if success {
                         ConfigManager.shared.cargar()
+                        PremiumManager.shared.cargar()
                     } else {
                         ConfigManager.shared.resetearSesion()
+                        PremiumManager.shared.resetear()
                         try? Auth.auth().signOut()
                     }
                 }
@@ -66,6 +68,7 @@ struct ContentView: View {
             cargando    = false
             autenticado = true
             ConfigManager.shared.cargar()
+            PremiumManager.shared.cargar()
         }
     }
 }

@@ -5,24 +5,26 @@ import LocalAuthentication
 
 struct ConfigView: View {
 
-    @ObservedObject var theme = ThemeManager.shared
-    @ObservedObject var loc   = LocalizationManager.shared
+    @ObservedObject var theme   = ThemeManager.shared
+    @ObservedObject var loc     = LocalizationManager.shared
+    @ObservedObject var premium = PremiumManager.shared
 
     @AppStorage("recordarSesion") var recordarSesion = false
     @AppStorage("usarFaceID")     var usarFaceID     = false
     @AppStorage("saved_email")    var savedEmail      = ""
     @AppStorage("saved_pass")     var savedPass       = ""
 
-    @State private var nombreActual      = ""
-    @State private var showCambiarNombre = false
-    @State private var nuevoNombre       = ""
-    @State private var showCerrarSesion  = false
-    @State private var showTerminos      = false
-    @State private var showContrasena    = false
-    @State private var msg               = ""
-    @State private var showMsg           = false
-    @State private var irSetup           = false
-    @State private var irPresupuesto     = false   // NUEVO
+    @State private var nombreActual       = ""
+    @State private var showCambiarNombre  = false
+    @State private var nuevoNombre        = ""
+    @State private var showCerrarSesion   = false
+    @State private var showTerminos       = false
+    @State private var showContrasena     = false
+    @State private var msg                = ""
+    @State private var showMsg            = false
+    @State private var irSetup            = false
+    @State private var irPresupuesto      = false
+    @State private var showPremium        = false
 
     var body: some View {
         NavigationStack {
@@ -33,25 +35,65 @@ struct ConfigView: View {
 
                         // Avatar
                         VStack(spacing: 10) {
-                            Text("💰")
-                                .font(Font.system(size: 50))
-                                .frame(width: 80, height: 80)
-                                .background(theme.temaOscuro
-                                    ? Color(hex: "#1B4332") : Color(hex: "#DCEEFB"))
-                                .clipShape(Circle())
+                            ZStack {
+                                Circle()
+                                    .fill(theme.temaOscuro ? Color(hex: "#1B4332") : Color(hex: "#DCEEFB"))
+                                    .frame(width: 80, height: 80)
+                                Text("💰").font(Font.system(size: 38))
+                                // Badge premium
+                                if premium.esPremium {
+                                    Text("👑").font(Font.system(size: 16))
+                                        .offset(x: 28, y: -28)
+                                }
+                            }
                             Text(nombreActual)
                                 .font(Font.title3.bold()).foregroundColor(.textoPrincipal)
                             Text(Auth.auth().currentUser?.email ?? "")
                                 .font(Font.caption).foregroundColor(.textoSecundario)
+                            if premium.enPrueba {
+                                Text("🎁 Prueba Premium — \(premium.diasRestantes) días restantes")
+                                    .font(Font.caption2.bold()).foregroundColor(Color(hex: "#4CAF50"))
+                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .background(Color(hex: "#1B4332")).cornerRadius(8)
+                            } else if premium.esPremium {
+                                Text("👑 Premium activo — \(premium.diasRestantes) días restantes")
+                                    .font(Font.caption2.bold()).foregroundColor(Color(hex: "#FFD700"))
+                                    .padding(.horizontal, 10).padding(.vertical, 4)
+                                    .background(Color(hex: "#1A1200")).cornerRadius(8)
+                            }
                         }
                         .frame(maxWidth: .infinity).padding()
                         .background(Color.cardApp).cornerRadius(20)
-                        .overlay(RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.bordeApp, lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.bordeApp, lineWidth: 1))
+
+                        // ── BANNER PREMIUM ──
+                        Button { showPremium = true } label: {
+                            HStack(spacing: 12) {
+                                Text("👑").font(Font.title3)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(premium.esPremium ? "Premium Activo ✅" : "Hazte Premium")
+                                        .font(Font.subheadline.bold()).foregroundColor(.textoPrincipal)
+                                    Text(premium.esPremium
+                                         ? (premium.enPrueba ? "Prueba — expira: \(premium.labelExpiracion)" : "Expira: \(premium.labelExpiracion)")
+                                         : "7 días gratis · Desbloquea todo")
+                                        .font(Font.caption2).foregroundColor(.textoSecundario)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(Color(hex: "#FFD700")).font(Font.caption)
+                            }
+                            .padding()
+                            .background(LinearGradient(
+                                colors: [Color(hex: "#1A1200"), Color(hex: "#2A1A00")],
+                                startPoint: .leading, endPoint: .trailing))
+                            .cornerRadius(14)
+                            .overlay(RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color(hex: "#FFD700").opacity(0.5), lineWidth: 1.5))
+                        }
+                        .buttonStyle(PlainButtonStyle())
 
                         // Opciones
                         VStack(spacing: 0) {
-
                             filaBoton("person.fill", t("config.cambiar_nombre")) {
                                 nuevoNombre = nombreActual; showCambiarNombre = true
                             }
@@ -62,19 +104,12 @@ struct ConfigView: View {
                             }
                             divider()
 
-                            // Categorías
-                            filaBoton("tag.fill", "Categorías y cuentas") {
-                                irSetup = true
-                            }
+                            filaBoton("tag.fill", "Categorías y cuentas") { irSetup = true }
                             divider()
 
-                            // Presupuesto — NUEVO, separado
-                            filaBoton("chart.bar.fill", "Presupuesto") {
-                                irPresupuesto = true
-                            }
+                            filaBoton("chart.bar.fill", "Presupuesto") { irPresupuesto = true }
                             divider()
 
-                            // Face ID
                             if puedeFaceID() {
                                 HStack(spacing: 14) {
                                     Image(systemName: "faceid")
@@ -82,16 +117,22 @@ struct ConfigView: View {
                                     Text(t("config.faceid")).foregroundColor(.textoPrincipal)
                                     Spacer()
                                     Toggle("", isOn: $usarFaceID)
-                                        .toggleStyle(SwitchToggleStyle(tint: .acentoApp))
-                                        .labelsHidden()
+                                        .toggleStyle(SwitchToggleStyle(tint: .acentoApp)).labelsHidden()
                                         .onChange(of: usarFaceID) { if $0 { registrarFaceID() } }
                                 }
                                 .padding()
                                 divider()
                             }
 
-                            toggleFila("arrow.clockwise.circle.fill",
-                                       t("config.recordar"), valor: $recordarSesion)
+                            HStack(spacing: 14) {
+                                Image(systemName: "arrow.clockwise.circle.fill")
+                                    .foregroundColor(.acentoApp).frame(width: 24)
+                                Text(t("config.recordar")).foregroundColor(.textoPrincipal)
+                                Spacer()
+                                Toggle("", isOn: $recordarSesion)
+                                    .toggleStyle(SwitchToggleStyle(tint: .acentoApp)).labelsHidden()
+                            }
+                            .padding()
                             divider()
 
                             HStack(spacing: 14) {
@@ -133,24 +174,26 @@ struct ConfigView: View {
                                 Text(t("config.cerrar")).fontWeight(.bold)
                             }
                             .frame(maxWidth: .infinity).padding()
-                            .background(Color(hex: "#4A1010")).foregroundColor(.rojoFinanzas)
-                            .cornerRadius(14)
+                            .background(Color(hex: "#4A1010"))
+                            .foregroundColor(Color(hex: "#FF5252")).cornerRadius(14)
                             .overlay(RoundedRectangle(cornerRadius: 14)
-                                .stroke(Color.rojoFinanzas.opacity(0.5), lineWidth: 1))
+                                .stroke(Color(hex: "#FF5252").opacity(0.5), lineWidth: 1))
                         }
+
+                        Text(t("app.copyright"))
+                            .font(Font.caption2).foregroundColor(Color.textoSecundario.opacity(0.4))
                     }
                     .padding()
                 }
             }
-            // Categorías y cuentas
             .navigationDestination(isPresented: $irSetup) {
                 SetupCategoriasView(modoInicial: false)
             }
-            // Presupuesto
             .navigationDestination(isPresented: $irPresupuesto) {
                 PresupuestoView()
             }
         }
+        .sheet(isPresented: $showPremium) { PremiumView() }
         .alert(t("config.cambiar_nombre"), isPresented: $showCambiarNombre) {
             TextField(t("nombre.campo"), text: $nuevoNombre)
             Button(t("login.ingresar")) { actualizarNombre() }
@@ -186,17 +229,6 @@ struct ConfigView: View {
             }
             .padding()
         }
-    }
-
-    func toggleFila(_ icono: String, _ titulo: String, valor: Binding<Bool>) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: icono).foregroundColor(.acentoApp).frame(width: 24)
-            Text(titulo).foregroundColor(.textoPrincipal)
-            Spacer()
-            Toggle("", isOn: valor)
-                .toggleStyle(SwitchToggleStyle(tint: .acentoApp)).labelsHidden()
-        }
-        .padding()
     }
 
     func divider() -> some View {
@@ -241,7 +273,7 @@ struct ConfigView: View {
                 if success {
                     if let email = Auth.auth().currentUser?.email { savedEmail = email }
                     msg = "✅ Face ID activado"
-                } else { usarFaceID = false; msg = "❌ No se pudo activar Face ID" }
+                } else { usarFaceID = false; msg = "❌ No se pudo activar" }
                 showMsg = true
             }
         }
@@ -249,8 +281,8 @@ struct ConfigView: View {
 
     func abrirWhatsApp() {
         let numero = "573246538855"
-        let msg    = "Hola, necesito ayuda con FinanzasQG"
-        if let enc = msg.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+        let mensaje = "Hola, necesito ayuda con FinanzasQG"
+        if let enc = mensaje.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
            let url = URL(string: "https://wa.me/\(numero)?text=\(enc)") {
             UIApplication.shared.open(url)
         }
@@ -261,6 +293,7 @@ struct ConfigView: View {
         UserDefaults.standard.set(false, forKey: "usarFaceID")
         savedEmail = ""; savedPass = ""
         ConfigManager.shared.resetearSesion()
+        PremiumManager.shared.resetear()
         try? Auth.auth().signOut()
         if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
            let window = scene.windows.first {
