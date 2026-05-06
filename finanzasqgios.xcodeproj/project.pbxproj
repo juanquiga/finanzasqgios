@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		208309F92FA9899E0057AAE6 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 208309F82FA9899E0057AAE6 /* RevenueCat */; };
+		20830A012FAB6E720057AAE6 /* Premium.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 20830A002FAB6E720057AAE6 /* Premium.storekit */; };
 		20B646142F990FCA000D3F9F /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 20B646132F990FCA000D3F9F /* GoogleSignIn */; };
 		20B646162F990FCA000D3F9F /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 20B646152F990FCA000D3F9F /* GoogleSignInSwift */; };
 		20E8039C2F95E1F200FDA583 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 20E8039B2F95E1F200FDA583 /* FirebaseAuth */; };
@@ -15,6 +16,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		20830A002FAB6E720057AAE6 /* Premium.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Premium.storekit; sourceTree = "<group>"; };
 		20E8038A2F95DF4D00FDA583 /* finanzasqgios.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = finanzasqgios.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -23,7 +25,6 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
-				Untitled.swift,
 			);
 			target = 20E803892F95DF4D00FDA583 /* finanzasqgios */;
 		};
@@ -59,6 +60,7 @@
 		20E803812F95DF4D00FDA583 = {
 			isa = PBXGroup;
 			children = (
+				20830A002FAB6E720057AAE6 /* Premium.storekit */,
 				20E8038C2F95DF4D00FDA583 /* finanzasqgios */,
 				20E8038B2F95DF4D00FDA583 /* Products */,
 			);
@@ -147,6 +149,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				20830A012FAB6E720057AAE6 /* Premium.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

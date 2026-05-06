@@ -6,11 +6,14 @@ struct SetupCategoriasView: View {
 
     var modoInicial: Bool = true
 
-    @ObservedObject var theme  = ThemeManager.shared
+    @ObservedObject var theme   = ThemeManager.shared
+    @ObservedObject var premium = PremiumManager.shared
     @StateObject private var config = ConfigManager.shared
-    @State private var seccion    = "egresos"
-    @State private var guardando  = false
-    @State private var catEditando: CategoriaItem? = nil
+    @State private var seccion     = "egresos"
+    @State private var guardando   = false
+    @State private var catEditando : CategoriaItem? = nil
+    @State private var showPremium = false
+    @State private var bannerMsg   = ""
     @Environment(\.dismiss) var dismiss
 
     var arbolActual: Binding<[CategoriaItem]> {
@@ -23,6 +26,7 @@ struct SetupCategoriasView: View {
                 Color.fondoApp.ignoresSafeArea()
                 VStack(spacing: 0) {
 
+                    // Header
                     VStack(spacing: 4) {
                         Text("🎯 Personalización")
                             .font(Font.title2.bold()).foregroundColor(.acentoApp)
@@ -31,8 +35,6 @@ struct SetupCategoriasView: View {
                     }
                     .padding(.top, 16).padding(.bottom, 12)
 
-                    // Solo 3 tabs: Egresos, Ingresos, Cuentas
-                    // Los presupuestos se editan en "Presupuesto" desde Configuración
                     Picker("", selection: $seccion) {
                         Text("Egresos").tag("egresos")
                         Text("Ingresos").tag("ingresos")
@@ -43,10 +45,10 @@ struct SetupCategoriasView: View {
                     // Aviso presupuesto
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle.fill").foregroundColor(Color(hex: "#2196F3"))
-                        Text("Para modificar presupuestos ve a Configuración → Presupuesto")
+                        Text("Los presupuestos se configuran en Configuración → Presupuesto")
                             .font(Font.caption2).foregroundColor(.textoSecundario)
                     }
-                    .padding(.horizontal).padding(.bottom, 10)
+                    .padding(.horizontal).padding(.bottom, 8)
 
                     ScrollView {
                         VStack(spacing: 12) {
@@ -80,29 +82,58 @@ struct SetupCategoriasView: View {
                 categoria: bindingParaCat(cat.id),
                 onSave: { catEditando = nil })
         }
+        .sheet(isPresented: $showPremium) { PremiumView() }
     }
 
-    // MARK: - Vista Categorías (sin presupuesto — solo estructura)
+    // MARK: - Vista Categorías CON LÍMITES
     var vistaCategorias: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "lock.shield.fill").foregroundColor(.acentoApp)
-                Text("Estas categorías son exclusivamente tuyas. Los presupuestos se configuran en la sección Presupuesto.")
-                    .font(Font.caption2).foregroundColor(.textoSecundario)
-            }
-            .padding(10).background(Color(hex: "#0D2A1A")).cornerRadius(10)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.acentoApp.opacity(0.3), lineWidth: 1))
 
+            // Banner límite si no es premium
+            if !premium.esPremium {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.shield.fill").foregroundColor(.acentoApp)
+                    Text("Plan gratuito: hasta \(PremiumManager.Limites.maxCategorias) categorías y \(PremiumManager.Limites.maxSubcategorias) subcategorías por categoría")
+                        .font(Font.caption2).foregroundColor(.textoSecundario)
+                    Spacer()
+                    Button("👑") { showPremium = true }
+                        .font(Font.caption).foregroundColor(Color(hex: "#FFD700"))
+                }
+                .padding(10).background(Color(hex: "#0D2A1A")).cornerRadius(10)
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.acentoApp.opacity(0.3), lineWidth: 1))
+            }
+
+            // Banner si llegó al límite
+            if !bannerMsg.isEmpty {
+                BannerLimiteView(mensaje: bannerMsg) { showPremium = true }
+            }
+
+            // Botón agregar categoría — BLOQUEADO si llegó al límite
             Button {
-                arbolActual.wrappedValue.append(CategoriaItem(nombre: "Nueva categoría"))
+                if premium.puedeAgregarCategoria(count: arbolActual.wrappedValue.count) {
+                    arbolActual.wrappedValue.append(CategoriaItem(nombre: "Nueva categoría"))
+                    bannerMsg = ""
+                } else {
+                    bannerMsg = premium.mensajeLimite("categoria")
+                }
             } label: {
                 HStack {
-                    Image(systemName: "plus.circle.fill").foregroundColor(.acentoApp)
-                    Text("Agregar categoría").foregroundColor(.acentoApp).fontWeight(.semibold)
+                    Image(systemName: premium.puedeAgregarCategoria(count: arbolActual.wrappedValue.count)
+                          ? "plus.circle.fill" : "lock.fill")
+                        .foregroundColor(.acentoApp)
+                    Text(premium.puedeAgregarCategoria(count: arbolActual.wrappedValue.count)
+                         ? "Agregar categoría"
+                         : "Límite alcanzado — \(arbolActual.wrappedValue.count)/\(PremiumManager.Limites.maxCategorias)")
+                        .foregroundColor(.acentoApp).fontWeight(.semibold)
                     Spacer()
+                    if !premium.esPremium {
+                        Text("\(arbolActual.wrappedValue.count)/\(PremiumManager.Limites.maxCategorias)")
+                            .font(Font.caption2).foregroundColor(.textoSecundario)
+                    }
                 }
                 .padding().background(Color.cardApp).cornerRadius(12)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.acentoApp.opacity(0.5), lineWidth: 1))
+                .overlay(RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.acentoApp.opacity(0.5), lineWidth: 1))
             }
 
             ForEach(arbolActual) { $cat in
@@ -123,41 +154,23 @@ struct SetupCategoriasView: View {
                     Divider().background(Color.bordeApp).padding(.leading, 44)
 
                     ForEach($cat.subcategorias) { $sub in
-                        VStack(alignment: .leading, spacing: 0) {
-                            HStack {
-                                Image(systemName: "chevron.right")
-                                    .font(Font.caption).foregroundColor(.textoSecundario).padding(.leading, 20)
-                                Text(sub.nombre).font(Font.caption).foregroundColor(.textoPrincipal)
-                                Spacer()
-                                Button { cat.subcategorias.removeAll { $0.id == sub.id } } label: {
-                                    Image(systemName: "minus.circle")
-                                        .foregroundColor(Color(hex: "#FF5252").opacity(0.6)).font(Font.caption)
-                                }
-                            }
-                            .padding(.vertical, 8).padding(.horizontal)
-
-                            if !sub.subsubcategorias.isEmpty {
-                                ForEach(sub.subsubcategorias, id: \.id) { ssub in
-                                    HStack {
-                                        Image(systemName: "arrow.turn.down.right")
-                                            .font(Font.caption2)
-                                            .foregroundColor(Color.textoSecundario.opacity(0.6)).padding(.leading, 36)
-                                        Text(ssub.nombre).font(Font.caption2)
-                                            .foregroundColor(Color.textoSecundario.opacity(0.8))
-                                        Spacer()
-                                        Button { sub.subsubcategorias.removeAll { $0.id == ssub.id } } label: {
-                                            Image(systemName: "xmark.circle")
-                                                .foregroundColor(Color(hex: "#FF5252").opacity(0.5)).font(Font.caption2)
-                                        }
-                                    }
-                                    .padding(.vertical, 4).padding(.horizontal)
-                                }
+                        HStack {
+                            Image(systemName: "chevron.right")
+                                .font(Font.caption).foregroundColor(.textoSecundario).padding(.leading, 20)
+                            Text(sub.nombre).font(Font.caption).foregroundColor(.textoPrincipal)
+                            Spacer()
+                            Button { cat.subcategorias.removeAll { $0.id == sub.id } } label: {
+                                Image(systemName: "minus.circle")
+                                    .foregroundColor(Color(hex: "#FF5252").opacity(0.6)).font(Font.caption)
                             }
                         }
+                        .padding(.vertical, 8).padding(.horizontal)
                     }
 
-                    AgregarSubView(cat: $cat)
-                    Divider().background(Color.bordeApp)
+                    // AgregarSubView con límite
+                    AgregarSubViewConLimite(cat: $cat, onLimite: {
+                        bannerMsg = premium.mensajeLimite("subcategoria")
+                    })
                 }
                 .background(Color.cardApp).cornerRadius(14)
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.bordeApp, lineWidth: 1))
@@ -165,18 +178,31 @@ struct SetupCategoriasView: View {
         }
     }
 
-    // MARK: - Vista Cuentas
+    // MARK: - Vista Cuentas CON LÍMITES
     var vistaCuentas: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 8) {
-                Image(systemName: "lock.shield.fill").foregroundColor(.acentoApp)
-                Text("Tus cuentas son privadas. Solo tú las ves.")
-                    .font(Font.caption2).foregroundColor(.textoSecundario)
-            }
-            .padding(10).background(Color(hex: "#0D2A1A")).cornerRadius(10)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.acentoApp.opacity(0.3), lineWidth: 1))
 
-            AgregarCuentaView(cuentas: $config.cuentas)
+            if !premium.esPremium {
+                HStack(spacing: 8) {
+                    Image(systemName: "lock.shield.fill").foregroundColor(.acentoApp)
+                    Text("Plan gratuito: hasta \(PremiumManager.Limites.maxCuentas) cuentas")
+                        .font(Font.caption2).foregroundColor(.textoSecundario)
+                    Spacer()
+                    Button("👑") { showPremium = true }
+                        .font(Font.caption).foregroundColor(Color(hex: "#FFD700"))
+                }
+                .padding(10).background(Color(hex: "#0D2A1A")).cornerRadius(10)
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.acentoApp.opacity(0.3), lineWidth: 1))
+            }
+
+            if !bannerMsg.isEmpty {
+                BannerLimiteView(mensaje: bannerMsg) { showPremium = true }
+            }
+
+            // Agregar cuenta con límite
+            AgregarCuentaConLimite(cuentas: $config.cuentas, onLimite: {
+                bannerMsg = premium.mensajeLimite("cuenta")
+            })
 
             ForEach($config.cuentas, id: \.self) { $cta in
                 HStack(spacing: 12) {
@@ -193,7 +219,6 @@ struct SetupCategoriasView: View {
         }
     }
 
-    // MARK: - Helpers
     func bindingParaCat(_ catId: String) -> Binding<CategoriaItem> {
         Binding(
             get: { arbolActual.wrappedValue.first { $0.id == catId } ?? CategoriaItem() },
@@ -229,9 +254,12 @@ struct SetupCategoriasView: View {
     }
 }
 
-// MARK: - AgregarSubView
-struct AgregarSubView: View {
+// MARK: - AgregarSubViewConLimite
+struct AgregarSubViewConLimite: View {
     @Binding var cat: CategoriaItem
+    var onLimite: () -> Void
+
+    @ObservedObject var premium = PremiumManager.shared
     @State private var nuevaSub  = ""
     @State private var nuevoSsub = ""
     @State private var subSelec  = ""
@@ -243,6 +271,10 @@ struct AgregarSubView: View {
                 HStack {
                     Image(systemName: "plus.circle").foregroundColor(.acentoApp).font(Font.caption)
                     Text("Agregar subcategoría").font(Font.caption).foregroundColor(.acentoApp)
+                    if !premium.esPremium {
+                        Text("\(cat.subcategorias.count)/\(PremiumManager.Limites.maxSubcategorias)")
+                            .font(Font.caption2).foregroundColor(.textoSecundario)
+                    }
                     Spacer()
                     Image(systemName: expandido ? "chevron.up" : "chevron.down")
                         .font(Font.caption2).foregroundColor(.textoSecundario)
@@ -252,21 +284,23 @@ struct AgregarSubView: View {
 
             if expandido {
                 VStack(spacing: 8) {
-                    // Nueva subcategoría
                     HStack {
                         TextField("Nombre subcategoría", text: $nuevaSub)
                             .font(Font.caption).foregroundColor(.textoPrincipal)
                         Button("＋") {
                             let s = nuevaSub.trimmingCharacters(in: .whitespaces)
                             guard !s.isEmpty else { return }
-                            cat.subcategorias.append(SubcategoriaItem(nombre: s))
-                            nuevaSub = ""
+                            if premium.puedeAgregarSubcategoria(count: cat.subcategorias.count) {
+                                cat.subcategorias.append(SubcategoriaItem(nombre: s))
+                                nuevaSub = ""
+                            } else {
+                                onLimite()
+                            }
                         }
                         .foregroundColor(.acentoApp).fontWeight(.bold)
                     }
                     .padding(10).background(Color.inputFondo).cornerRadius(10)
 
-                    // Subsubcategoría
                     if !cat.subcategorias.isEmpty {
                         Picker("Subcategoría", selection: $subSelec) {
                             Text("Para subcategoría...").tag("")
@@ -283,8 +317,7 @@ struct AgregarSubView: View {
                                     let s = nuevoSsub.trimmingCharacters(in: .whitespaces)
                                     guard !s.isEmpty else { return }
                                     if let idx = cat.subcategorias.firstIndex(where: { $0.id == subSelec }) {
-                                        cat.subcategorias[idx].subsubcategorias
-                                            .append(SubsubcategoriaItem(nombre: s))
+                                        cat.subcategorias[idx].subsubcategorias.append(SubsubcategoriaItem(nombre: s))
                                     }
                                     nuevoSsub = ""
                                 }
@@ -300,7 +333,35 @@ struct AgregarSubView: View {
     }
 }
 
-// MARK: - AgregarCuentaView
+// MARK: - AgregarCuentaConLimite
+struct AgregarCuentaConLimite: View {
+    @Binding var cuentas: [String]
+    var onLimite: () -> Void
+
+    @ObservedObject var premium = PremiumManager.shared
+    @State private var nuevaCta = ""
+
+    var body: some View {
+        HStack {
+            Image(systemName: "creditcard.fill").foregroundColor(.acentoApp)
+            TextField("Nueva cuenta (ej: Nu, Nequi)", text: $nuevaCta).foregroundColor(.textoPrincipal)
+            Button("＋") {
+                let c = nuevaCta.trimmingCharacters(in: .whitespaces)
+                guard !c.isEmpty else { return }
+                if premium.puedeAgregarCuenta(count: cuentas.count) {
+                    cuentas.append(c); nuevaCta = ""
+                } else {
+                    onLimite()
+                }
+            }
+            .foregroundColor(.acentoApp).fontWeight(.bold)
+        }
+        .padding().background(Color.cardApp).cornerRadius(12)
+        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.acentoApp.opacity(0.5), lineWidth: 1))
+    }
+}
+
+// MARK: - AgregarCuentaView (sin límite — para retrocompatibilidad)
 struct AgregarCuentaView: View {
     @Binding var cuentas: [String]
     @State private var nuevaCta = ""
@@ -308,7 +369,7 @@ struct AgregarCuentaView: View {
     var body: some View {
         HStack {
             Image(systemName: "creditcard.fill").foregroundColor(.acentoApp)
-            TextField("Nueva cuenta (ej: Nu, Nequi)", text: $nuevaCta).foregroundColor(.textoPrincipal)
+            TextField("Nueva cuenta", text: $nuevaCta).foregroundColor(.textoPrincipal)
             Button("＋") {
                 let c = nuevaCta.trimmingCharacters(in: .whitespaces)
                 guard !c.isEmpty else { return }
@@ -321,7 +382,7 @@ struct AgregarCuentaView: View {
     }
 }
 
-// MARK: - EditarCategoriaView (solo estructura, SIN campos de presupuesto)
+// MARK: - EditarCategoriaView (sin presupuesto — solo estructura)
 struct EditarCategoriaView: View {
     @ObservedObject var theme = ThemeManager.shared
     @Binding var categoria: CategoriaItem
@@ -335,7 +396,6 @@ struct EditarCategoriaView: View {
                 ScrollView {
                     VStack(spacing: 16) {
 
-                        // Nombre
                         VStack(alignment: .leading, spacing: 6) {
                             Text("NOMBRE CATEGORÍA")
                                 .font(Font.caption.bold()).foregroundColor(.acentoApp).kerning(1.2)
@@ -345,10 +405,9 @@ struct EditarCategoriaView: View {
                                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.bordeApp, lineWidth: 1))
                         }
 
-                        // Aviso presupuesto
                         HStack(spacing: 8) {
                             Image(systemName: "info.circle.fill").foregroundColor(Color(hex: "#2196F3"))
-                            Text("Para modificar presupuestos de esta categoría ve a Configuración → Presupuesto")
+                            Text("Los presupuestos se configuran en Configuración → Presupuesto")
                                 .font(Font.caption2).foregroundColor(.textoSecundario)
                         }
                         .padding(10).background(Color(hex: "#0D1A2A")).cornerRadius(10)

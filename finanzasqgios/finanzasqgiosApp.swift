@@ -17,21 +17,31 @@ struct finanzasqgiosApp: App {
 
 class AppDelegate: NSObject, UIApplicationDelegate {
 
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
         // Firebase
         FirebaseApp.configure()
 
-        // RevenueCat — pon tu API Key aquí
-        Purchases.logLevel = .debug  // quitar en producción
-        Purchases.configure(withAPIKey: "test_iHQjiPzcuDpWFWukVGIVHDQQzun")
+        // RevenueCat
+        Purchases.logLevel = .warn
+        Purchases.configure(withAPIKey: "test_dpLWVOomytKHFrxoEdadnSrRdhu")
+
+        // Pedir permiso para notificaciones
+        NotificacionesManager.shared.pedirPermiso()
+
+        // Programar recordatorio mensual
+        NotificacionesManager.shared.programarRecordatorioMensual()
 
         return true
     }
 
-    func application(_ app: UIApplication, open url: URL,
-                     options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+    func application(
+        _ app: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
         GIDSignIn.sharedInstance.handle(url)
     }
 }

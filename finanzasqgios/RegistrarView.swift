@@ -424,17 +424,43 @@ struct RegistrarView: View {
 
         errorMsg = ""; guardando = true
 
+        // Verificar límite de movimientos del mes
+        let cal = Calendar.current
+        Database.database().reference().child("movimientos").child(uid)
+            .observeSingleEvent(of: .value) { snap in
+                var contMes = 0
+                for case let child as DataSnapshot in snap.children {
+                    let d   = child.value as? [String: Any] ?? [:]
+                    let ts  = d["timestamp"] as? Double ?? 0
+                    let fec = Date(timeIntervalSince1970: ts / 1000)
+                    if cal.isDate(fec, equalTo: Date(), toGranularity: .month) {
+                        contMes += 1
+                    }
+                }
+
+                DispatchQueue.main.async {
+                    // Si no es premium y llegó al límite
+                    if !PremiumManager.shared.puedeRegistrarMovimiento(countMes: contMes) {
+                        self.guardando = false
+                        self.errorMsg  = PremiumManager.shared.mensajeLimite("movimiento")
+                        return
+                    }
+                    // Todo OK → guardar
+                    self.guardarEnFirebase(uid: uid)
+                }
+            }
+    }
+
+    func guardarEnFirebase(uid: String) {
+        guard let valor = valorDouble else { return }
+
         let ref = Database.database().reference()
             .child("movimientos").child(uid).childByAutoId()
 
-        // Combinar fecha elegida + hora actual para el timestamp
-        var comps  = cal.dateComponents([.year, .month, .day], from: fechaSelec)
-        let ahora  = cal.dateComponents([.hour, .minute, .second], from: Date())
-        comps.hour   = ahora.hour
-        comps.minute = ahora.minute
-        comps.second = ahora.second
-        let fechaFinal     = cal.date(from: comps) ?? fechaSelec
-        let timestampFinal = fechaFinal.timeIntervalSince1970 * 1000
+        var comps = cal.dateComponents([.year, .month, .day], from: fechaSelec)
+        let ahora = cal.dateComponents([.hour, .minute, .second], from: Date())
+        comps.hour = ahora.hour; comps.minute = ahora.minute; comps.second = ahora.second
+        let ts = (cal.date(from: comps) ?? fechaSelec).timeIntervalSince1970 * 1000
 
         var data: [String: Any] = [
             "id"             : ref.key ?? UUID().uuidString,
@@ -442,23 +468,19 @@ struct RegistrarView: View {
             "detalle"        : detalle.trimmingCharacters(in: .whitespacesAndNewlines),
             "valor"          : valor,
             "moneda"         : moneda,
-            "timestamp"      : timestampFinal
+            "timestamp"      : ts
         ]
 
         if tipo == "Transferencia" {
-            data["categoria"]       = "Transferencia"
-            data["cuentaOrigen"]    = cuentaOrigen
-            data["cuentaDestino"]   = cuentaDestino
-            data["cuenta"]          = cuentaDestino
-            data["subcategoria"]    = ""
-            data["subsubcategoria"] = ""
+            data["categoria"] = "Transferencia"; data["cuentaOrigen"] = cuentaOrigen
+            data["cuentaDestino"] = cuentaDestino; data["cuenta"] = cuentaDestino
+            data["subcategoria"] = ""; data["subsubcategoria"] = ""
         } else {
-            data["categoria"]       = categoria
-            data["subcategoria"]    = subcategoria
-            data["subsubcategoria"] = subsubcategoria
-            data["cuenta"]          = cuenta
-            data["cuentaOrigen"]    = ""
-            data["cuentaDestino"]   = ""
+            data["categoria"] = categoria; data["subcategoria"] = subcategoria
+            data["subsubcategoria"] = subsubcategoria; data["cuenta"] = cuenta
+            data["cuentaOrigen"] = ""; data["cuentaDestino"] = ""
+            // Verificar presupuesto y enviar notificación si es necesario
+            NotificacionesManager.shared.verificarDespuesDeRegistrar()
         }
 
         ref.setValue(data) { error, _ in
@@ -470,8 +492,7 @@ struct RegistrarView: View {
                     valorTexto = ""; detalle = ""; categoria = ""
                     subcategoria = ""; subsubcategoria = ""
                     cuenta = ""; cuentaOrigen = ""; cuentaDestino = ""
-                    errorMsg = ""
-                    fechaSelec = Date() // reset a hoy
+                    errorMsg = ""; fechaSelec = Date()
                     withAnimation { guardado = true }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
                         withAnimation { guardado = false }

@@ -6,7 +6,7 @@ import Combine
 // ═══════════════════════════════════════
 class ThemeManager: ObservableObject {
     static let shared = ThemeManager()
-    @AppStorage("temaOscuro") var temaOscuro = true {
+    @AppStorage("temaOscuro") var temaOscuro: Bool = true {
         didSet { objectWillChange.send() }
     }
     private init() {}
@@ -26,8 +26,8 @@ class LocalizationManager: ObservableObject {
     private init() {
         self.idioma = UserDefaults.standard.string(forKey: "idioma") ?? "es"
     }
-    func t(_ key: String) -> String {
-        guard let path = Bundle.main.path(forResource: idioma, ofType: "lproj"),
+    func localizar(_ key: String) -> String {
+        guard let path   = Bundle.main.path(forResource: idioma, ofType: "lproj"),
               let bundle = Bundle(path: path) else {
             return NSLocalizedString(key, comment: "")
         }
@@ -35,8 +35,7 @@ class LocalizationManager: ObservableObject {
     }
 }
 
-// Función global
-func t(_ key: String) -> String { LocalizationManager.shared.t(key) }
+func t(_ key: String) -> String { LocalizationManager.shared.localizar(key) }
 
 // ═══════════════════════════════════════
 // MARK: - Color(hex:)
@@ -47,7 +46,7 @@ extension Color {
         var int: UInt64 = 0
         Scanner(string: h).scanHexInt64(&int)
         let r = Double((int >> 16) & 0xFF) / 255
-        let g = Double((int >> 8)  & 0xFF) / 255
+        let g = Double((int >>  8) & 0xFF) / 255
         let b = Double( int        & 0xFF) / 255
         self.init(red: r, green: g, blue: b)
     }
@@ -70,8 +69,7 @@ extension Color {
             ? Color(hex: "#1E3A4A") : Color(hex: "#BDD7EE")
     }
     static var textoPrincipal: Color {
-        ThemeManager.shared.temaOscuro
-            ? Color.white : Color(hex: "#0D2137")
+        ThemeManager.shared.temaOscuro ? .white : Color(hex: "#0D2137")
     }
     static var textoSecundario: Color {
         ThemeManager.shared.temaOscuro
@@ -89,12 +87,10 @@ extension Color {
     }
     static var gradienteBoton: LinearGradient {
         ThemeManager.shared.temaOscuro
-            ? LinearGradient(
-                colors: [Color(hex: "#2E7D32"), Color(hex: "#1B5E20")],
-                startPoint: .leading, endPoint: .trailing)
-            : LinearGradient(
-                colors: [Color(hex: "#1565C0"), Color(hex: "#0D47A1")],
-                startPoint: .leading, endPoint: .trailing)
+        ? LinearGradient(colors: [Color(hex: "#2E7D32"), Color(hex: "#1B5E20")],
+                         startPoint: .leading, endPoint: .trailing)
+        : LinearGradient(colors: [Color(hex: "#1565C0"), Color(hex: "#0D47A1")],
+                         startPoint: .leading, endPoint: .trailing)
     }
 }
 
@@ -102,31 +98,27 @@ extension Color {
 // MARK: - Formatters
 // ═══════════════════════════════════════
 func formatValor(_ valor: Double, moneda: String) -> String {
+    let f = NumberFormatter()
+    f.numberStyle = .decimal
     if moneda == "USD" {
-        let f = NumberFormatter()
-        f.numberStyle       = .decimal
-        f.groupingSeparator = ","
-        f.decimalSeparator  = "."
+        f.groupingSeparator  = ","
+        f.decimalSeparator   = "."
         f.maximumFractionDigits = 2
         f.minimumFractionDigits = 0
         return "\(f.string(from: NSNumber(value: valor)) ?? "\(Int(valor))")USD"
     } else {
-        let f = NumberFormatter()
-        f.numberStyle       = .decimal
-        f.groupingSeparator = "."
-        f.decimalSeparator  = ","
+        f.groupingSeparator  = "."
+        f.decimalSeparator   = ","
         f.maximumFractionDigits = 0
         return "$\(f.string(from: NSNumber(value: valor)) ?? "\(Int(valor))")"
     }
 }
-
 func formatCOP(_ valor: Double) -> String { formatValor(valor, moneda: "COP") }
-
 func formatFecha(_ timestamp: Double) -> String {
     let date = Date(timeIntervalSince1970: timestamp / 1000)
-    let f = DateFormatter()
+    let f    = DateFormatter()
     f.dateFormat = "dd/MM/yyyy  HH:mm"
-    f.locale = Locale(identifier: "es_CO")
+    f.locale     = Locale(identifier: "es_CO")
     return f.string(from: date)
 }
 
@@ -141,19 +133,14 @@ struct BotonVerde: ButtonStyle {
                 colors: [Color(hex: "#2E7D32"), Color(hex: "#1B5E20")],
                 startPoint: .top, endPoint: .bottom))
             .foregroundColor(.white).cornerRadius(14)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .animation(.easeInOut(duration: 0.1), value: configuration.isPressed)
     }
 }
-
 struct CardStyle: ViewModifier {
     func body(content: Content) -> some View {
         content.padding().background(Color.cardApp).cornerRadius(16)
-            .overlay(RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.bordeApp, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.bordeApp, lineWidth: 1))
     }
 }
-
-extension View {
-    func cardStyle() -> some View { modifier(CardStyle()) }
-}
+extension View { func cardStyle() -> some View { modifier(CardStyle()) } }

@@ -18,12 +18,10 @@ struct SetupCompletoView: View {
                     insertion: .move(edge: .trailing),
                     removal:   .move(edge: .leading)))
             } else {
-                SetupPaso2View(onContinuar: {
-                    irAApp()
-                })
-                .transition(.asymmetric(
-                    insertion: .move(edge: .trailing),
-                    removal:   .move(edge: .leading)))
+                SetupPaso2View(onContinuar: { irAApp() })
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing),
+                        removal:   .move(edge: .leading)))
             }
         }
         .preferredColorScheme(theme.temaOscuro ? .dark : .light)
@@ -42,16 +40,16 @@ struct SetupCompletoView: View {
     }
 }
 
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // PASO 1: Categorías y cuentas
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 struct SetupPaso1View: View {
 
     @ObservedObject var theme  = ThemeManager.shared
     @StateObject private var config = ConfigManager.shared
     @State private var seccion     = "egresos"
     @State private var guardando   = false
-    @State private var catEditando : CategoriaItem? = nil
+    @State private var catEditando: CategoriaItem? = nil
     var onContinuar: () -> Void
 
     var arbolActual: Binding<[CategoriaItem]> {
@@ -113,7 +111,7 @@ struct SetupPaso1View: View {
 
     var vistaCategorias: some View {
         VStack(spacing: 10) {
-            infoCard("Estas son tus categorías predeterminadas. Puedes editarlas, agregar nuevas o eliminarlas. Los presupuestos los configuras en el siguiente paso.")
+            infoCard("Estas son tus categorías predeterminadas. Los presupuestos los configuras en el siguiente paso.")
 
             Button {
                 arbolActual.wrappedValue.append(CategoriaItem(nombre: "Nueva categoría"))
@@ -159,7 +157,11 @@ struct SetupPaso1View: View {
                         .padding(.vertical, 8).padding(.horizontal)
                     }
 
-                    AgregarSubView(cat: $cat)
+                    // ← AQUÍ estaba el error — AgregarSubView está definido en SetupCategoriasView.swift
+                    // Lo reemplazamos con una versión local equivalente
+                    AgregarSubViewLocal(cat: $cat)
+
+                    Divider().background(Color.bordeApp)
                 }
                 .background(Color.cardApp).cornerRadius(14)
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.bordeApp, lineWidth: 1))
@@ -169,7 +171,7 @@ struct SetupPaso1View: View {
 
     var vistaCuentas: some View {
         VStack(spacing: 10) {
-            infoCard("Agrega tus cuentas bancarias o de efectivo. Podrás registrar en qué cuenta entra o sale cada movimiento.")
+            infoCard("Agrega tus cuentas bancarias o de efectivo.")
             AgregarCuentaView(cuentas: $config.cuentas)
             ForEach($config.cuentas, id: \.self) { $cta in
                 HStack(spacing: 12) {
@@ -198,9 +200,9 @@ struct SetupPaso1View: View {
     }
 }
 
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 // PASO 2: Presupuesto
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
 struct SetupPaso2View: View {
 
     @ObservedObject var theme  = ThemeManager.shared
@@ -209,7 +211,6 @@ struct SetupPaso2View: View {
     @State private var catExpandida = ""
     var onContinuar: () -> Void
 
-    // Total calculado desde presupuestoTotal (computed, solo lectura)
     var presupuestoTotal: Double {
         config.egresosTree.reduce(0) { $0 + $1.presupuestoTotal }
     }
@@ -224,9 +225,8 @@ struct SetupPaso2View: View {
             ScrollView {
                 VStack(spacing: 16) {
 
-                    infoCard("Los presupuestos son opcionales — puedes dejarlos en 0 y configurarlos después en Configuración → Presupuesto. Se sincronizan con Android automáticamente.")
+                    infoCard("Los presupuestos son opcionales. Puedes configurarlos después en Configuración → Presupuesto.")
 
-                    // Resumen total (solo lectura, calculado automáticamente)
                     if presupuestoTotal > 0 {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
@@ -244,7 +244,7 @@ struct SetupPaso2View: View {
                             .stroke(Color.acentoApp.opacity(0.4), lineWidth: 1.5))
                     }
 
-                    // ── GENERAL ──
+                    // General
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "gauge.with.needle.fill").foregroundColor(.acentoApp)
@@ -264,23 +264,19 @@ struct SetupPaso2View: View {
                     .overlay(RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.acentoApp.opacity(0.4), lineWidth: 1.5))
 
-                    // ── POR CATEGORÍA ──
+                    // Por categoría
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Image(systemName: "tag.fill").foregroundColor(Color(hex: "#FF9800"))
                             Text("POR CATEGORÍA DE EGRESO").font(Font.subheadline.bold())
                                 .foregroundColor(.textoPrincipal)
                         }
-                        Text("Expande cada categoría para ver y configurar sus subcategorías. El total se calcula automáticamente.")
-                            .font(Font.caption2).foregroundColor(.textoSecundario)
-
                         if config.egresosTree.isEmpty {
-                            Text("No hay categorías de egresos configuradas.")
+                            Text("No hay categorías configuradas.")
                                 .font(Font.caption).foregroundColor(.textoSecundario)
                                 .padding(10).frame(maxWidth: .infinity)
                                 .background(Color.inputFondo).cornerRadius(10)
                         } else {
-                            // Iterar con índice para poder modificar via $config.egresosTree[idx]
                             ForEach(config.egresosTree.indices, id: \.self) { catIdx in
                                 filaCategoriaPresupuesto(catIdx: catIdx)
                             }
@@ -289,14 +285,6 @@ struct SetupPaso2View: View {
                     .padding().background(Color.cardApp).cornerRadius(16)
                     .overlay(RoundedRectangle(cornerRadius: 16)
                         .stroke(Color(hex: "#FF9800").opacity(0.4), lineWidth: 1.5))
-
-                    HStack(spacing: 8) {
-                        Image(systemName: "info.circle").foregroundColor(.textoSecundario)
-                        Text("Puedes modificar estos presupuestos después en Configuración → Presupuesto")
-                            .font(Font.caption2).foregroundColor(.textoSecundario)
-                    }
-                    .padding(10).background(Color.cardApp).cornerRadius(10)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.bordeApp, lineWidth: 1))
                 }
                 .padding()
             }
@@ -306,8 +294,7 @@ struct SetupPaso2View: View {
                     guardando = true
                     config.guardar()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                        guardando = false
-                        onContinuar()
+                        guardando = false; onContinuar()
                     }
                 } label: {
                     HStack {
@@ -335,13 +322,9 @@ struct SetupPaso2View: View {
         .background(Color.fondoApp.ignoresSafeArea())
     }
 
-    // ── Fila categoría expandible ──
-    // Usa índice directo para modificar $config.egresosTree[catIdx].presupuesto
     func filaCategoriaPresupuesto(catIdx: Int) -> some View {
         let cat = config.egresosTree[catIdx]
-
         return VStack(spacing: 0) {
-            // Cabecera categoría
             Button {
                 withAnimation(.spring(response: 0.3)) {
                     catExpandida = catExpandida == cat.id ? "" : cat.id
@@ -353,7 +336,6 @@ struct SetupPaso2View: View {
                     Image(systemName: "folder.fill").foregroundColor(.acentoApp).frame(width: 18)
                     Text(cat.nombre).font(Font.subheadline.bold()).foregroundColor(.textoPrincipal)
                     Spacer()
-                    // Mostrar total calculado (read-only)
                     if cat.presupuestoTotal > 0 {
                         Text(formatCOP(cat.presupuestoTotal))
                             .font(Font.caption.bold()).foregroundColor(.acentoApp)
@@ -367,8 +349,6 @@ struct SetupPaso2View: View {
 
             if catExpandida == cat.id {
                 VStack(spacing: 8) {
-
-                    // Presupuesto propio de la categoría — usa .presupuesto (writable)
                     campoPresInline(
                         label: "Presupuesto de \"\(cat.nombre)\"",
                         valor: Binding(
@@ -376,10 +356,47 @@ struct SetupPaso2View: View {
                             set: { config.egresosTree[catIdx].presupuesto = $0 }
                         )
                     )
-
-                    // Subcategorías
                     ForEach(cat.subcategorias.indices, id: \.self) { subIdx in
-                        filaSubcategoriaPresupuesto(catIdx: catIdx, subIdx: subIdx)
+                        let sub = config.egresosTree[catIdx].subcategorias[subIdx]
+                        VStack(spacing: 6) {
+                            HStack {
+                                Image(systemName: "list.bullet")
+                                    .foregroundColor(.textoSecundario).frame(width: 16)
+                                Text(sub.nombre).font(Font.subheadline).foregroundColor(.textoPrincipal)
+                                Spacer()
+                            }
+                            campoPresInline(
+                                label: "Presupuesto subcategoría",
+                                valor: Binding(
+                                    get: { config.egresosTree[catIdx].subcategorias[subIdx].presupuesto },
+                                    set: { config.egresosTree[catIdx].subcategorias[subIdx].presupuesto = $0 }
+                                )
+                            )
+                            ForEach(sub.subsubcategorias.indices, id: \.self) { ssubIdx in
+                                let ssub = config.egresosTree[catIdx].subcategorias[subIdx].subsubcategorias[ssubIdx]
+                                HStack(spacing: 8) {
+                                    Image(systemName: "arrow.turn.down.right")
+                                        .font(Font.caption2).foregroundColor(.textoSecundario.opacity(0.6))
+                                    Text(ssub.nombre).font(Font.caption).foregroundColor(.textoPrincipal)
+                                    Spacer()
+                                    TextField("0",
+                                        value: Binding(
+                                            get: { config.egresosTree[catIdx].subcategorias[subIdx].subsubcategorias[ssubIdx].presupuesto },
+                                            set: { config.egresosTree[catIdx].subcategorias[subIdx].subsubcategorias[ssubIdx].presupuesto = $0 }
+                                        ), format: .number)
+                                        .keyboardType(.decimalPad)
+                                        .multilineTextAlignment(.trailing)
+                                        .foregroundColor(.textoPrincipal)
+                                        .frame(width: 90).padding(6)
+                                        .background(Color.inputFondo).cornerRadius(8)
+                                        .overlay(RoundedRectangle(cornerRadius: 8)
+                                            .stroke(ssub.presupuesto > 0
+                                                    ? Color.acentoApp : Color.bordeApp, lineWidth: 1))
+                                    Text("$").font(Font.caption2).foregroundColor(.textoSecundario)
+                                }
+                            }
+                        }
+                        .padding(8).background(Color.inputFondo.opacity(0.5)).cornerRadius(10)
                     }
                 }
                 .padding(.leading, 16).padding(.vertical, 8)
@@ -391,69 +408,6 @@ struct SetupPaso2View: View {
                     ? Color.acentoApp.opacity(0.3) : Color.bordeApp, lineWidth: 1))
     }
 
-    // ── Fila subcategoría ──
-    func filaSubcategoriaPresupuesto(catIdx: Int, subIdx: Int) -> some View {
-        let sub = config.egresosTree[catIdx].subcategorias[subIdx]
-
-        return VStack(spacing: 6) {
-            HStack(spacing: 8) {
-                Image(systemName: "list.bullet").foregroundColor(.textoSecundario).frame(width: 16)
-                Text(sub.nombre).font(Font.subheadline).foregroundColor(.textoPrincipal)
-                Spacer()
-                if sub.presupuestoTotal > 0 {
-                    Text(formatCOP(sub.presupuestoTotal))
-                        .font(Font.caption2.bold()).foregroundColor(.acentoApp)
-                }
-            }
-
-            // Presupuesto propio subcategoría — usa .presupuesto (writable)
-            campoPresInline(
-                label: "Presupuesto subcategoría",
-                valor: Binding(
-                    get: { config.egresosTree[catIdx].subcategorias[subIdx].presupuesto },
-                    set: { config.egresosTree[catIdx].subcategorias[subIdx].presupuesto = $0 }
-                )
-            )
-
-            // Subsubcategorías
-            if !sub.subsubcategorias.isEmpty {
-                VStack(spacing: 4) {
-                    ForEach(sub.subsubcategorias.indices, id: \.self) { ssubIdx in
-                        let ssub = config.egresosTree[catIdx].subcategorias[subIdx].subsubcategorias[ssubIdx]
-                        HStack(spacing: 8) {
-                            Image(systemName: "arrow.turn.down.right")
-                                .font(Font.caption2).foregroundColor(.textoSecundario.opacity(0.6))
-                            Text(ssub.nombre)
-                                .font(Font.caption).foregroundColor(.textoPrincipal).frame(minWidth: 60)
-                            Spacer()
-                            // TextField directo con índice — presupuesto (writable)
-                            TextField("0",
-                                value: Binding(
-                                    get: { config.egresosTree[catIdx].subcategorias[subIdx].subsubcategorias[ssubIdx].presupuesto },
-                                    set: { config.egresosTree[catIdx].subcategorias[subIdx].subsubcategorias[ssubIdx].presupuesto = $0 }
-                                ),
-                                format: .number)
-                                .keyboardType(.decimalPad)
-                                .multilineTextAlignment(.trailing)
-                                .foregroundColor(.textoPrincipal)
-                                .frame(width: 90)
-                                .padding(6)
-                                .background(Color.inputFondo).cornerRadius(8)
-                                .overlay(RoundedRectangle(cornerRadius: 8)
-                                    .stroke(ssub.presupuesto > 0
-                                            ? Color.acentoApp : Color.bordeApp, lineWidth: 1))
-                            Text("$").font(Font.caption2).foregroundColor(.textoSecundario)
-                        }
-                        .padding(.horizontal, 4)
-                    }
-                }
-                .padding(8).background(Color.inputFondo.opacity(0.5)).cornerRadius(8)
-            }
-        }
-        .padding(8).background(Color.inputFondo.opacity(0.5)).cornerRadius(10)
-    }
-
-    // ── Campos de presupuesto ──
     func campoPres(_ titulo: String, valor: Binding<Double>, preview: String?) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(titulo).font(Font.caption.bold()).foregroundColor(.acentoApp)
@@ -493,9 +447,80 @@ struct SetupPaso2View: View {
     }
 }
 
-// ─────────────────────────────────────────────────────
-// MARK: - Helpers globales
-// ─────────────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// MARK: - AgregarSubViewLocal (versión local para SetupCompletoView)
+// ─────────────────────────────────────────────
+struct AgregarSubViewLocal: View {
+    @Binding var cat: CategoriaItem
+    @State private var nuevaSub  = ""
+    @State private var nuevoSsub = ""
+    @State private var subSelec  = ""
+    @State private var expandido = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Button { withAnimation { expandido.toggle() } } label: {
+                HStack {
+                    Image(systemName: "plus.circle").foregroundColor(.acentoApp).font(Font.caption)
+                    Text("Agregar subcategoría").font(Font.caption).foregroundColor(.acentoApp)
+                    Spacer()
+                    Image(systemName: expandido ? "chevron.up" : "chevron.down")
+                        .font(Font.caption2).foregroundColor(.textoSecundario)
+                }
+                .padding(.horizontal).padding(.vertical, 8)
+            }
+            if expandido {
+                VStack(spacing: 8) {
+                    HStack {
+                        TextField("Nombre subcategoría", text: $nuevaSub)
+                            .font(Font.caption).foregroundColor(.textoPrincipal)
+                        Button("＋") {
+                            let s = nuevaSub.trimmingCharacters(in: .whitespaces)
+                            guard !s.isEmpty else { return }
+                            cat.subcategorias.append(SubcategoriaItem(nombre: s))
+                            nuevaSub = ""
+                        }
+                        .foregroundColor(.acentoApp).fontWeight(.bold)
+                    }
+                    .padding(10).background(Color.inputFondo).cornerRadius(10)
+
+                    if !cat.subcategorias.isEmpty {
+                        Picker("Subcategoría", selection: $subSelec) {
+                            Text("Para subcategoría...").tag("")
+                            ForEach(cat.subcategorias) { sub in Text(sub.nombre).tag(sub.id) }
+                        }
+                        .pickerStyle(.menu).padding(8).background(Color.inputFondo)
+                        .cornerRadius(10).accentColor(.acentoApp)
+
+                        if !subSelec.isEmpty {
+                            HStack {
+                                TextField("Subsubcategoría", text: $nuevoSsub)
+                                    .font(Font.caption).foregroundColor(.textoPrincipal)
+                                Button("＋") {
+                                    let s = nuevoSsub.trimmingCharacters(in: .whitespaces)
+                                    guard !s.isEmpty else { return }
+                                    if let idx = cat.subcategorias
+                                        .firstIndex(where: { $0.id == subSelec }) {
+                                        cat.subcategorias[idx].subsubcategorias
+                                            .append(SubsubcategoriaItem(nombre: s))
+                                    }
+                                    nuevoSsub = ""
+                                }
+                                .foregroundColor(.acentoApp).fontWeight(.bold)
+                            }
+                            .padding(10).background(Color.inputFondo).cornerRadius(10)
+                        }
+                    }
+                }
+                .padding(.horizontal).padding(.bottom, 8)
+            }
+        }
+    }
+}
+
+// ─────────────────────────────────────────────
+// MARK: - Helpers globales (pasoHeader, infoCard)
+// ─────────────────────────────────────────────
 func pasoHeader(actual: Int, total: Int, titulo: String, subtitulo: String) -> some View {
     VStack(spacing: 8) {
         HStack(spacing: 8) {
@@ -517,7 +542,6 @@ func pasoHeader(actual: Int, total: Int, titulo: String, subtitulo: String) -> s
             }
         }
         .padding(.horizontal, 40).padding(.top, 16)
-
         Text(titulo).font(Font.title2.bold()).foregroundColor(.acentoApp)
         Text(subtitulo).font(Font.caption).foregroundColor(.textoSecundario)
     }
@@ -529,9 +553,7 @@ func infoCard(_ texto: String) -> some View {
         Image(systemName: "lightbulb.fill").foregroundColor(Color(hex: "#FF9800"))
         Text(texto).font(Font.caption2).foregroundColor(.textoSecundario)
     }
-    .padding(10)
-    .background(Color(hex: "#1A1200"))
-    .cornerRadius(10)
+    .padding(10).background(Color(hex: "#1A1200")).cornerRadius(10)
     .overlay(RoundedRectangle(cornerRadius: 10)
         .stroke(Color(hex: "#FF9800").opacity(0.3), lineWidth: 1))
 }

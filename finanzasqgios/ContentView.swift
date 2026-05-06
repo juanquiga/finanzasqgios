@@ -44,7 +44,8 @@ struct ContentView: View {
         }
 
         let ctx     = LAContext()
-        let soporta = ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: nil)
+        let soporta = ctx.canEvaluatePolicy(
+            .deviceOwnerAuthenticationWithBiometrics, error: nil)
 
         if usarFaceID && soporta {
             ctx.evaluatePolicy(

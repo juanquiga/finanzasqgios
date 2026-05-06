@@ -14,17 +14,17 @@ struct ConfigView: View {
     @AppStorage("saved_email")    var savedEmail      = ""
     @AppStorage("saved_pass")     var savedPass       = ""
 
-    @State private var nombreActual       = ""
-    @State private var showCambiarNombre  = false
-    @State private var nuevoNombre        = ""
-    @State private var showCerrarSesion   = false
-    @State private var showTerminos       = false
-    @State private var showContrasena     = false
-    @State private var msg                = ""
-    @State private var showMsg            = false
-    @State private var irSetup            = false
-    @State private var irPresupuesto      = false
-    @State private var showPremium        = false
+    @State private var nombreActual      = ""
+    @State private var showCambiarNombre = false
+    @State private var nuevoNombre       = ""
+    @State private var showCerrarSesion  = false
+    @State private var showTerminos      = false
+    @State private var showContrasena    = false
+    @State private var msg               = ""
+    @State private var showMsg           = false
+    @State private var irSetup           = false
+    @State private var irPresupuesto     = false
+    @State private var showPremium       = false
 
     var body: some View {
         NavigationStack {
@@ -37,10 +37,10 @@ struct ConfigView: View {
                         VStack(spacing: 10) {
                             ZStack {
                                 Circle()
-                                    .fill(theme.temaOscuro ? Color(hex: "#1B4332") : Color(hex: "#DCEEFB"))
+                                    .fill(theme.temaOscuro
+                                          ? Color(hex: "#1B4332") : Color(hex: "#DCEEFB"))
                                     .frame(width: 80, height: 80)
                                 Text("💰").font(Font.system(size: 38))
-                                // Badge premium
                                 if premium.esPremium {
                                     Text("👑").font(Font.system(size: 16))
                                         .offset(x: 28, y: -28)
@@ -51,12 +51,12 @@ struct ConfigView: View {
                             Text(Auth.auth().currentUser?.email ?? "")
                                 .font(Font.caption).foregroundColor(.textoSecundario)
                             if premium.enPrueba {
-                                Text("🎁 Prueba Premium — \(premium.diasRestantes) días restantes")
+                                Text("🎁 Prueba — \(premium.diasRestantes) días restantes")
                                     .font(Font.caption2.bold()).foregroundColor(Color(hex: "#4CAF50"))
                                     .padding(.horizontal, 10).padding(.vertical, 4)
                                     .background(Color(hex: "#1B4332")).cornerRadius(8)
                             } else if premium.esPremium {
-                                Text("👑 Premium activo — \(premium.diasRestantes) días restantes")
+                                Text("👑 Premium — \(premium.diasRestantes) días restantes")
                                     .font(Font.caption2.bold()).foregroundColor(Color(hex: "#FFD700"))
                                     .padding(.horizontal, 10).padding(.vertical, 4)
                                     .background(Color(hex: "#1A1200")).cornerRadius(8)
@@ -64,17 +64,18 @@ struct ConfigView: View {
                         }
                         .frame(maxWidth: .infinity).padding()
                         .background(Color.cardApp).cornerRadius(20)
-                        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.bordeApp, lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 20)
+                            .stroke(Color.bordeApp, lineWidth: 1))
 
-                        // ── BANNER PREMIUM ──
+                        // Banner Premium
                         Button { showPremium = true } label: {
                             HStack(spacing: 12) {
                                 Text("👑").font(Font.title3)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(premium.esPremium ? "Premium Activo ✅" : "Hazte Premium")
+                                    Text(premium.esPremium ? "Premium Activo ✅" : "Hazte Premium 👑")
                                         .font(Font.subheadline.bold()).foregroundColor(.textoPrincipal)
                                     Text(premium.esPremium
-                                         ? (premium.enPrueba ? "Prueba — expira: \(premium.labelExpiracion)" : "Expira: \(premium.labelExpiracion)")
+                                         ? "Expira: \(premium.labelExpiracion)"
                                          : "7 días gratis · Desbloquea todo")
                                         .font(Font.caption2).foregroundColor(.textoSecundario)
                                 }
@@ -98,15 +99,12 @@ struct ConfigView: View {
                                 nuevoNombre = nombreActual; showCambiarNombre = true
                             }
                             divider()
-
                             filaBoton("lock.fill", t("config.cambiar_pass")) {
                                 showContrasena = true
                             }
                             divider()
-
                             filaBoton("tag.fill", "Categorías y cuentas") { irSetup = true }
                             divider()
-
                             filaBoton("chart.bar.fill", "Presupuesto") { irPresupuesto = true }
                             divider()
 
@@ -117,7 +115,8 @@ struct ConfigView: View {
                                     Text(t("config.faceid")).foregroundColor(.textoPrincipal)
                                     Spacer()
                                     Toggle("", isOn: $usarFaceID)
-                                        .toggleStyle(SwitchToggleStyle(tint: .acentoApp)).labelsHidden()
+                                        .toggleStyle(SwitchToggleStyle(tint: .acentoApp))
+                                        .labelsHidden()
                                         .onChange(of: usarFaceID) { if $0 { registrarFaceID() } }
                                 }
                                 .padding()
@@ -165,7 +164,8 @@ struct ConfigView: View {
                             filaBoton("doc.text.fill", t("config.terminos")) { showTerminos = true }
                         }
                         .background(Color.cardApp).cornerRadius(16)
-                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.bordeApp, lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.bordeApp, lineWidth: 1))
 
                         // Cerrar sesión
                         Button { showCerrarSesion = true } label: {
@@ -181,7 +181,8 @@ struct ConfigView: View {
                         }
 
                         Text(t("app.copyright"))
-                            .font(Font.caption2).foregroundColor(Color.textoSecundario.opacity(0.4))
+                            .font(Font.caption2)
+                            .foregroundColor(Color.textoSecundario.opacity(0.4))
                     }
                     .padding()
                 }
@@ -209,10 +210,10 @@ struct ConfigView: View {
             Button(t("config.cerrar_si"), role: .destructive) { logout() }
             Button(t("config.cancelar"), role: .cancel) {}
         } message: { Text(t("config.cerrar_confirm")) }
-        .alert("Términos y Condiciones", isPresented: $showTerminos) {
+        .alert("Términos", isPresented: $showTerminos) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("• Datos guardados en Firebase\n• Información 100% privada\n• Sin venta de datos\n\nv1.0 — 2026")
+            Text("• Datos en Firebase\n• Información privada\n• Sin venta de datos\n\nv1.0 — 2026")
         }
         .alert(msg, isPresented: $showMsg) { Button("OK", role: .cancel) {} }
         .onAppear { cargarNombre() }
@@ -225,7 +226,8 @@ struct ConfigView: View {
                 Image(systemName: icono).foregroundColor(.acentoApp).frame(width: 24)
                 Text(titulo).foregroundColor(.textoPrincipal)
                 Spacer()
-                Image(systemName: "chevron.right").foregroundColor(.textoSecundario).font(Font.caption)
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.textoSecundario).font(Font.caption)
             }
             .padding()
         }
@@ -244,9 +246,10 @@ struct ConfigView: View {
         Database.database().reference().child("users").child(uid)
             .observeSingleEvent(of: .value) { snap in
                 let data = snap.value as? [String: Any]
-                let n = data?["name"] as? String ?? ""
+                let n    = data?["name"] as? String ?? ""
                 nombreActual = n.isEmpty
-                    ? (Auth.auth().currentUser?.email?.components(separatedBy: "@").first ?? "Usuario") : n
+                    ? (Auth.auth().currentUser?.email?
+                        .components(separatedBy: "@").first ?? "Usuario") : n
             }
     }
 
@@ -268,7 +271,7 @@ struct ConfigView: View {
 
     func registrarFaceID() {
         LAContext().evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics,
-                                   localizedReason: "Registra Face ID para FinanzasQG") { success, _ in
+                                   localizedReason: "Registra Face ID") { success, _ in
             DispatchQueue.main.async {
                 if success {
                     if let email = Auth.auth().currentUser?.email { savedEmail = email }
@@ -280,7 +283,7 @@ struct ConfigView: View {
     }
 
     func abrirWhatsApp() {
-        let numero = "573246538855"
+        let numero  = "573246538855"
         let mensaje = "Hola, necesito ayuda con FinanzasQG"
         if let enc = mensaje.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
            let url = URL(string: "https://wa.me/\(numero)?text=\(enc)") {

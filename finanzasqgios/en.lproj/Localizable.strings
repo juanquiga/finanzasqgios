@@ -1,122 +1,104 @@
-// Login screen
-"login.titulo" = "FinanzasQG";
-"login.subtitulo" = "Control your finances intelligently";
-"login.correo" = "Email or username";
-"login.contrasena" = "Password";
-"login.recordar" = "Remember session";
-"login.olvide" = "Forgot your password?";
-"login.ingresar" = "SIGN IN";
-"login.faceid" = "Sign in with Face ID";
-"login.google" = "Continue with Google";
-"login.apple" = "Continue with Apple";
-"login.crear" = "Create new account";
-"login.copyright" = "FinanzasQG © 2025";
-"login.error.campos" = "Fill in all fields";
-"login.error.credenciales" = "Incorrect credentials";
-"login.error.usuario" = "User not found";
-"login.reset.titulo" = "Reset password";
-"login.reset.mensaje" = "Enter your registered email";
-"login.reset.exito" = "Email sent ✅";
+// ─── App general ───
+"app.copyright" = "FinanzasQG © 2026";
 
-// Sign up
-"signup.titulo" = "Create account";
-"signup.nombre" = "Username";
-"signup.correo" = "Email address";
-"signup.contrasena" = "Password (min. 6)";
-"signup.boton" = "CREATE ACCOUNT";
-"signup.exito" = "Account created! 🎉 Sign in to continue.";
-"signup.volver" = "← Back to Login";
-"signup.ir_login" = "GO TO LOGIN";
+// ─── Login ───
+"login.titulo"          = "FinanzasQG";
+"login.subtitulo"       = "Control your finances intelligently";
+"login.correo"          = "Email or username";
+"login.contrasena"      = "Password";
+"login.recordar"        = "Remember session";
+"login.olvide"          = "Forgot your password?";
+"login.ingresar"        = "Sign In";
+"login.google"          = "Continue with Google";
+"login.crear"           = "Create new account";
+"login.reset.titulo"    = "Recover password";
+"login.reset.mensaje"   = "We will send you an email to reset your password.";
+"login.reset.exito"     = "✅ Email sent. Check your inbox.";
+"login.error.campos"    = "Please fill in all fields";
+"login.error.credenciales" = "Incorrect email or password";
+"login.error.usuario"   = "User not found";
 
-// Username prompt
-"nombre.titulo" = "What should we call you?";
-"nombre.subtitulo" = "Choose your FinanzasQG username";
-"nombre.campo" = "Your username";
-"nombre.boton" = "CONTINUE";
-"nombre.error" = "Enter a valid name";
+// ─── Nombre ───
+"nombre.titulo"    = "What's your name?";
+"nombre.subtitulo" = "We'll personalize your experience";
+"nombre.campo"     = "Your name";
+"nombre.boton"     = "Continue";
+"nombre.error"     = "Enter at least 2 characters";
 
-// Home/Summary
-"resumen.titulo" = "FinanzasQG 💰";
-"resumen.hola" = "Hello";
-"resumen.diario" = "Daily";
-"resumen.mensual" = "Monthly";
-"resumen.anual" = "Annual";
-"resumen.todo" = "All";
-"resumen.ingresos" = "Income";
-"resumen.egresos" = "Expenses";
-"resumen.balance" = "Net balance";
+// ─── Registro ───
+"registrar.titulo"            = "Record movement";
+"registrar.egreso"            = "Expense";
+"registrar.ingreso"           = "Income";
+"registrar.transferencia"     = "Transfer";
+"registrar.categoria"         = "CATEGORY";
+"registrar.subcategoria"      = "SUBCATEGORY";
+"registrar.subsubcategoria"   = "DETAIL";
+"registrar.detalle"           = "DESCRIPTION";
+"registrar.valor"             = "AMOUNT";
+"registrar.cuenta"            = "ACCOUNT";
+"registrar.cuenta_origen"     = "FROM ACCOUNT";
+"registrar.cuenta_destino"    = "TO ACCOUNT";
+"registrar.selecciona_cat"    = "Select category";
+"registrar.selecciona_sub"    = "Select subcategory";
+"registrar.selecciona_subsub" = "Select detail";
+"registrar.selecciona_cta"    = "Select account";
+"registrar.selecciona_origen" = "Select origin account";
+"registrar.selecciona_destino"= "Select destination account";
+"registrar.guardar"           = "SAVE";
+"registrar.guardado"          = "✅ Movement recorded";
+
+// ─── Resumen / Home ───
+"resumen.titulo"    = "FinanzasQG";
+"resumen.hola"      = "Hello";
+"resumen.diario"    = "Today";
+"resumen.mensual"   = "Month";
+"resumen.anual"     = "Year";
+"resumen.todo"      = "All";
+"resumen.ingresos"  = "Income";
+"resumen.egresos"   = "Expenses";
+"resumen.balance"   = "Period balance";
+"resumen.vacio"     = "No movements in this period";
 "resumen.recientes" = "Recent movements";
-"resumen.vacio" = "No movements in this period";
 
-// Register
-"registrar.titulo" = "Register Movement";
-"registrar.egreso" = "Expense";
-"registrar.ingreso" = "Income";
-"registrar.categoria" = "CATEGORY";
-"registrar.subcategoria" = "SUBCATEGORY";
-"registrar.subsubcategoria" = "SUBCATEGORY DETAIL";
-"registrar.detalle" = "DETAIL (optional)";
-"registrar.valor" = "AMOUNT ($)";
-"registrar.cuenta" = "ACCOUNT";
-"registrar.guardar" = "SAVE MOVEMENT";
-"registrar.guardado" = "Movement saved!";
-"registrar.selecciona_cat" = "Select category";
-"registrar.selecciona_sub" = "Select subcategory";
-"registrar.selecciona_subsub" = "Select option";
-"registrar.selecciona_cta" = "Select account";
-
-// Charts
-"graficas.titulo" = "Charts & History";
-"graficas.mensual" = "Monthly";
-"graficas.anual" = "Annual";
-"graficas.todo" = "All";
-"graficas.ingresos" = "Income";
-"graficas.egresos" = "Expenses";
-"graficas.por_categoria" = "By Category";
-"graficas.vs" = "Income vs Expenses";
-"graficas.historial" = "VIEW FULL HISTORY";
-"graficas.sin_datos" = "No data for this period";
-
-// History
-"historial.titulo" = "History";
-"historial.buscar" = "Search category or detail...";
-"historial.registros" = "records";
-
-// Config
-"config.titulo" = "Settings";
-"config.cambiar_nombre" = "Change username";
-"config.cambiar_pass" = "Change password";
-"config.modificar" = "Modify records";
-"config.faceid" = "Use Face ID";
-"config.recordar" = "Remember session";
-"config.tema" = "Dark mode";
-"config.idioma" = "Language";
-"config.contacto" = "Contact us";
-"config.terminos" = "Terms and conditions";
-"config.cerrar" = "SIGN OUT";
-"config.cerrar_confirm" = "Are you sure you want to sign out?";
-"config.cerrar_si" = "Yes, sign out";
-"config.cancelar" = "Cancel";
-"config.pass_enviada" = "Recovery email sent";
-"config.nombre_actualizado" = "Username updated ✅";
-
-// Tab navigation
-"tab.resumen"   = "FinanzasQG";
-"tab.registrar" = "Register";
-"tab.graficas"  = "Charts";
-"tab.config"    = "Settings";
-
-// Transfers
-"registrar.transferencia"   = "Transfer";
-"registrar.cuenta_origen"   = "SOURCE ACCOUNT";
-"registrar.cuenta_destino"  = "DESTINATION ACCOUNT";
-"registrar.selecciona_origen"  = "Select source account";
-"registrar.selecciona_destino" = "Select destination account";
-
-// Charts extra
+// ─── Gráficas ───
+"graficas.titulo"         = "Charts & History";
+"graficas.mensual"        = "Monthly";
+"graficas.anual"          = "Annual";
+"graficas.todo"           = "All";
+"graficas.ingresos"       = "Income";
+"graficas.egresos"        = "Expenses";
 "graficas.transferencias" = "Transfers";
+"graficas.por_categoria"  = "By Category";
+"graficas.vs"             = "Income vs Expenses";
 "graficas.ingreso_porc"   = "% Income";
 "graficas.egreso_porc"    = "% Expenses";
+"graficas.sin_datos"      = "No data for this period";
+"graficas.historial"      = "VIEW FULL HISTORY";
 
-// Copyright
-"app.copyright" = "FinanzasQG © 2026";
+// ─── Historial ───
+"historial.titulo"    = "History";
+"historial.buscar"    = "Search by category or description...";
+"historial.registros" = "records";
+
+// ─── Configuración ───
+"config.cambiar_nombre"     = "Change name";
+"config.cambiar_pass"       = "Change password";
+"config.modificar"          = "Categories & accounts";
+"config.faceid"             = "Use Face ID";
+"config.recordar"           = "Remember session";
+"config.tema"               = "Dark mode";
+"config.idioma"             = "Language";
+"config.contacto"           = "Contact / Support";
+"config.terminos"           = "Terms and conditions";
+"config.cerrar"             = "Sign out";
+"config.cerrar_si"          = "Yes, sign out";
+"config.cerrar_confirm"     = "Are you sure you want to sign out?";
+"config.cancelar"           = "Cancel";
+"config.nombre_actualizado" = "✅ Name updated";
+"config.pass_enviada"       = "✅ Recovery email sent";
+
+// ─── Tabs ───
+"tab.home"          = "FinanzasQG";
+"tab.registrar"     = "Record";
+"tab.graficas"      = "Charts";
+"tab.configuracion" = "Settings";
